@@ -14,11 +14,13 @@ class _LoadingScreenState extends State<LoadingScreen> {
   void initState() {
     super.initState();
     // Atur timer untuk pindah ke halaman utama setelah 3 detik
-    Timer(const Duration(seconds: 5), () {
+    Timer(const Duration(seconds: 1), () {
       // Navigator.pushReplacement digunakan agar pengguna tidak bisa kembali ke Loading screen
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomePage()), // Ganti HomePage() dengan halaman utama Anda
+        MaterialPageRoute(
+          builder: (context) => const HomePage(),
+        ), // Ganti HomePage() dengan halaman utama Anda
       );
     });
   }
@@ -50,10 +52,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
             const Text(
               "Layanan Pengaduan dan Diseminasi\nStatistik Satu Pintu",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.white70,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.white70),
             ),
           ],
         ),

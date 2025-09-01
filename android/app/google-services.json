@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "210805940466",
+    "project_id": "trial-project-7fc79",
+    "storage_bucket": "trial-project-7fc79.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:210805940466:android:e272ff921f1f084134706b",
+        "android_client_info": {
+          "package_name": "com.example.lapis_satu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDxM9J9J4Q27qVojgHu2QBT6I3aMm3mT5o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'loading_screen.dart';
 
-void main() {
+void main() async {
+  // 1. Ensure that the Flutter bindings are initialized
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // 3. Run the app ONCE after initialization is complete
   runApp(const MyApp());
 }
 
@@ -11,31 +18,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Lapis Satu App',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue),
       home: const LoadingScreen(),
     );
   }
-}
-
-// Halaman utama placeholder sebagai tujuan navigasi
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Loading Screen'),
-      ),
-      body: const Center(
-        child: Text(
-          'Selamat Datang di LAPIS SATU',
-          style: TextStyle(fontSize: 24),
-        ),
-      ),
-    );
-  } 
 }
