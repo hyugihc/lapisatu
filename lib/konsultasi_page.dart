@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-
-  Future<void> _launchURL() async {
-    final Uri url = Uri.parse('https://halopst.web.bps.go.id'); 
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      throw 'Could not launch $url';
-    }
+Future<void> _launchURL() async {
+  final Uri url = Uri.parse('https://halopst.web.bps.go.id');
+  if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+    throw 'Could not launch $url';
   }
+}
 
 class KonsultasiPage extends StatelessWidget {
   const KonsultasiPage({super.key});
@@ -19,11 +19,12 @@ class KonsultasiPage extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
-                Image.asset('lib/assets/backgroundd.jpg',
-                height: screenHeight * 0.4,
-                width: double.infinity,
-                fit: BoxFit.cover,
-            ),
+          Image.asset(
+            'lib/assets/backgroundd.jpg',
+            height: screenHeight * 0.4,
+            width: double.infinity,
+            fit: BoxFit.cover,
+          ),
           SingleChildScrollView(
             child: Column(
               children: [
@@ -34,11 +35,21 @@ class KonsultasiPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.white,
+                          ),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                         const SizedBox(height: 10),
-                        const Text('KONSULTASI', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                        const Text(
+                          'KONSULTASI',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         const Text(
                           'Dengan mengedepankan profesionalisme dan keterbukaan, tim ahli kami siap membantu Anda menjawab berbagai pertanyaan, baik dalam bidang statistik, survei, pengolahan data, maupun interpretasi hasil.',
@@ -48,7 +59,7 @@ class KonsultasiPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                
+
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -103,12 +114,15 @@ class KonsultasiPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black, blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,10 +130,14 @@ class KonsultasiPage extends StatelessWidget {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: steps.map((step) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4.0),
-                    child: Text(step),
-                  )).toList(),
+                  children: steps
+                      .map(
+                        (step) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4.0),
+                          child: Text(step),
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
               const SizedBox(width: 16),
@@ -132,18 +150,20 @@ class KonsultasiPage extends StatelessWidget {
               if (title == 'Konsultasi Langsung') {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const FormulirKonsultasiPage()),
+                  MaterialPageRoute(
+                    builder: (context) => const FormulirKonsultasiPage(),
+                  ),
                 );
               } else if (title == "Konsultasi Online") {
                 _launchURL();
               }
             },
-            child: Text(buttonText),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue[700],
               foregroundColor: Colors.white,
               minimumSize: const Size(double.infinity, 40),
             ),
+            child: Text(buttonText),
           ),
         ],
       ),
@@ -160,6 +180,37 @@ class FormulirKonsultasiPage extends StatefulWidget {
 
 class _FormulirKonsultasiPageState extends State<FormulirKonsultasiPage> {
   final TextEditingController _dateController = TextEditingController();
+  final TextEditingController _name = TextEditingController();
+  final TextEditingController _instansi = TextEditingController();
+  final TextEditingController _noWa = TextEditingController();
+  final TextEditingController _email = TextEditingController();
+  final TextEditingController _topik = TextEditingController();
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final format = DateFormat('dd/MM/yyyy');
+
+  Future<void> _saveKonsul({
+    required String nama,
+    required String instansi,
+    required String noWa,
+    required String email,
+    required String topik,
+    required String tanggal,
+  }) async {
+    Timestamp tgl = Timestamp.fromDate(format.parse(tanggal));
+    try {
+      await firestore.collection('consult-req').add({
+        'name': nama,
+        'instansi': instansi,
+        'phone_num': noWa,
+        'email': email,
+        'topik': topik,
+        'date': tgl,
+      });
+      print('Permintaan berhasil dikirim!');
+    } catch (e) {
+      print('[Error] : $e');
+    }
+  }
 
   @override
   void dispose() {
@@ -194,13 +245,16 @@ class _FormulirKonsultasiPageState extends State<FormulirKonsultasiPage> {
               height: double.infinity,
             ),
             Container(
-              color: Colors.blue[900]!.withOpacity(0.7),
+              color: Colors.blue[900]!,
               width: double.infinity,
               height: double.infinity,
             ),
           ],
         ),
-        title: const Text('Formulir Konsultasi', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Formulir Konsultasi',
+          style: TextStyle(color: Colors.white),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
@@ -212,11 +266,11 @@ class _FormulirKonsultasiPageState extends State<FormulirKonsultasiPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTextField(label: 'Nama Lengkap'),
-              _buildTextField(label: 'Asal Instansi'),
-              _buildTextField(label: 'No WA Aktif'),
-              _buildTextField(label: 'Email Aktif'),
-              _buildTextField(label: 'Topik Konsultasi'),
+              _buildTextField(label: 'Nama Lengkap', varText: _name),
+              _buildTextField(label: 'Asal Instansi', varText: _instansi),
+              _buildTextField(label: 'No WA Aktif', varText: _noWa),
+              _buildTextField(label: 'Email Aktif', varText: _email),
+              _buildTextField(label: 'Topik Konsultasi', varText: _topik),
               const SizedBox(height: 20),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -225,7 +279,13 @@ class _FormulirKonsultasiPageState extends State<FormulirKonsultasiPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Tanggal Konsultasi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        const Text(
+                          'Tanggal Konsultasi',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                         const SizedBox(height: 8.0),
                         TextField(
                           controller: _dateController,
@@ -244,14 +304,26 @@ class _FormulirKonsultasiPageState extends State<FormulirKonsultasiPage> {
                   ),
                   const SizedBox(width: 16),
                   ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('Kirim'),
+                    onPressed: () {
+                      _saveKonsul(
+                        nama: _name.text,
+                        instansi: _instansi.text,
+                        noWa: _noWa.text,
+                        email: _email.text,
+                        topik: _topik.text,
+                        tanggal: _dateController.text,
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue[800],
                       foregroundColor: Colors.white,
                       shape: const StadiumBorder(),
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 12,
+                      ),
                     ),
+                    child: const Text('Kirim'),
                   ),
                 ],
               ),
@@ -262,22 +334,33 @@ class _FormulirKonsultasiPageState extends State<FormulirKonsultasiPage> {
     );
   }
 
-  Widget _buildTextField({required String label, int maxLines = 1}) {
+  Widget _buildTextField({
+    required String label,
+    int maxLines = 1,
+    required TextEditingController varText,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           const SizedBox(height: 8.0),
           TextField(
+            controller: varText,
             maxLines: maxLines,
             decoration: InputDecoration(
               hintText: 'Isikan di sini...',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.0),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12.0,
+                vertical: 10.0,
+              ),
             ),
           ),
         ],
