@@ -70,7 +70,7 @@ class HomeContent extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            height: screenHeight * 0.3,
+            height: screenHeight * 0.4,
             width: double.infinity,
             child: Stack(
               children: [
@@ -255,7 +255,6 @@ class MenuBar extends StatelessWidget {
             child: Image.asset(imagePath, width: 50, height: 50),
           ),
           const SizedBox(height: 8),
-          Text(label, style: TextStyle(color: Colors.grey[700], fontSize: 12)),
         ],
       ),
     );
