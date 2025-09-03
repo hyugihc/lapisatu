@@ -67,7 +67,7 @@ class HomeContent extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            height: screenHeight * 0.4,
+            height: screenHeight * 0.3,
             width: double.infinity,
             child: Stack(
               children: [
@@ -128,7 +128,6 @@ class HomeContent extends StatelessWidget {
                   offset: const Offset(0, -30),
                   child: const MenuInfografis(),
                 ),
-                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -141,21 +140,47 @@ class HomeContent extends StatelessWidget {
 //widget bagian homepage
 class SearchBar extends StatelessWidget {
   const SearchBar({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: 'cari data disini...',
-          filled: true,
-          fillColor: Colors.white,
-          prefixIcon: const Icon(Icons.search),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(25.0),
-            borderSide: BorderSide.none,
-          ),
-        ),
+      child: Autocomplete<String>(
+        optionsBuilder: (TextEditingValue textEditingValue) {
+          if (textEditingValue.text == '') {
+            return const Iterable<String>.empty();
+          }
+          return DataPage.dataTitles.where((title) =>
+            title.toLowerCase().contains(textEditingValue.text.toLowerCase())
+          );
+        },
+        fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+          return TextField(
+            controller: controller,
+            focusNode: focusNode,
+            decoration: InputDecoration(
+              hintText: 'cari data disini...',
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                // borderRadius: BorderRadius.circular(25.0),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          );
+        },
+        onSelected: (String selection) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetailDataPage(
+                title: selection,
+                onBack: () => Navigator.pop(context),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -176,7 +201,7 @@ class MenuBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(12.0),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               spreadRadius: 2,
               blurRadius: 10,
               offset: const Offset(0, 5),
@@ -226,12 +251,16 @@ class MenuBar extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
+              color: Colors.blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Image.asset(imagePath, width: 50, height: 50),
           ),
           const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(color: Colors.grey[700], fontSize: 12),
+          ),
         ],
       ),
     );
@@ -247,9 +276,10 @@ class StatsCard extends StatefulWidget {
 
 class _StatsCardState extends State<StatsCard> {
   final List<Map<String, String>> statsData = [
-    {'value': '4.30%', 'label': 'Tingkat pengangguran di kabupaten madiun 2025'},
-    {'value': '3.14%', 'label': 'Tingkat inflasi tahunan (y-on-y) agustus 2025'},
-    {'value': '7.20%', 'label': 'Persentase penduduk miskin maret 2025'},
+    {'value': '4.30%', 'label': 'Tingkat pengangguran di Kabupaten Madiun 2025'},
+    {'value': '3.14%', 'label': 'Tingkat inflasi tahunan (y-on-y) Agustus 2025'},
+    {'value': '7.20%', 'label': 'Persentase Penduduk miskin Maret 2025'},
+    {'value': '69.69%', 'label': 'Tingkat Polusi Udara di Kabupaten Madiun pada Agustus 2025'}
   ];
 
   int _currentPage = 0;
@@ -307,7 +337,7 @@ class _StatsCardState extends State<StatsCard> {
                   borderRadius: BorderRadius.circular(12.0),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       spreadRadius: 1,
                       blurRadius: 8,
                     ),
@@ -341,7 +371,7 @@ class _StatsCardState extends State<StatsCard> {
               margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 2.0),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _currentPage == index ? Colors.blueAccent : Colors.grey.withOpacity(0.5),
+                color: _currentPage == index ? Colors.blueAccent : Colors.grey.withValues(alpha: 0.5),
               ),
             );
           }),
@@ -357,10 +387,8 @@ class MenuInfografis extends StatelessWidget {
   final List<String> imagePaths = const [
     'lib/assets/infografisbps1.jpg',
     'lib/assets/infografisbps2.jpg',
-    'lib/assets/WhatsApp Image 2025-05-09 at 11.22.09 AM.jpeg',
-    'lib/assets/infografisbps2.jpg',
-    'lib/assets/infografisbps1.jpg',
-    'lib/assets/infografisbps2.jpg',
+    'lib/assets/upahburuh.jpg',
+    'lib/assets/pertumbuhanekonomi.jpg',
   ];
 
   @override
@@ -373,7 +401,7 @@ class MenuInfografis extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 8,
           ),
@@ -382,7 +410,30 @@ class MenuInfografis extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Infografis', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                'Infografis',
+                style:  TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => InfografisLengkap(),
+                    ),
+                  );
+                },
+                child: Text(
+                  'Lihat Semua',
+                  style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ),
+            ],
+          ),
           const SizedBox(height: 16),
           MasonryGridView.count(
             shrinkWrap: true,
@@ -399,6 +450,143 @@ class MenuInfografis extends StatelessWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+
+
+class InfografisLengkap extends StatelessWidget {
+  const InfografisLengkap({super.key});
+
+  static final List<Map<String, String>> infografisList = [
+    {
+      'title': 'Infografis Penduduk 2025',
+      'image': 'lib/assets/infografisbps1.jpg',
+      'description': 'Ini adalah deskripsi detail mengenai infografis kependudukan tahun 2025 di Kabupaten Madiun hore hore horas!!!',
+    },
+    {
+      'title': 'Infografis Ekonomi Kabupaten',
+      'image': 'lib/assets/infografisbps2.jpg',
+      'description': 'Rangkuman data ekonomi kabupaten, mencakup PDRB, inflasi, dan sektor-sektor penggerak utama...',
+    },
+    {
+      'title': 'Rata-Rata Upah Buruh',
+      'image': 'lib/assets/upahburuh.jpg',
+      'description': 'Gambaran umum mengenai rata-rata upah buruh per sektor...',
+    },
+    {
+      'title': 'Pertumbuhan Ekonomi',
+      'image': 'lib/assets/pertumbuhanekonomi.jpg',
+      'description': 'Grafik yang menunjukkan laju pertumbuhan ekonomi Kabupaten Madiun dari tahun ke tahun.',
+    },
+  ];
+
+  void _showImageDialog(BuildContext context, Map<String, String> info) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        contentPadding: EdgeInsets.zero,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 24),
+        content: 
+            Container(
+              height: MediaQuery.of(context).size.height * 0.7,
+              width: MediaQuery.of(context).size.width,
+              padding: const EdgeInsets.all(10.0),
+              child: Column( 
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    info['title']!,
+                    textAlign: TextAlign.center, 
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  const SizedBox(height: 15),
+                  Expanded(
+                    flex: 4,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.asset(
+                        info['image']!,
+                        fit: BoxFit.contain,
+                        width: double.infinity,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    flex: 1,
+                    child:SingleChildScrollView(
+                      child: Text(
+                        info['description']!,
+                        textAlign: TextAlign.justify,
+                        style: TextStyle(color: Colors.grey[700]),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+      );
+    },
+  );
+}
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        flexibleSpace: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset('lib/assets/backgroundd.jpg', fit: BoxFit.cover),
+            Container(color: Colors.black.withValues(alpha: 0.3)),
+          ],
+        ),
+        title: const Text(
+          'Semua Infografis',
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: MasonryGridView.count(
+        padding: const EdgeInsets.all(16.0),
+        crossAxisCount: 2,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        itemCount: infografisList.length,
+        itemBuilder: (context, index) {
+          final info = infografisList[index];
+          
+          return GestureDetector(
+            onTap: () => _showImageDialog(context, info),
+            child: Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Image.asset(info['image']!),
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Text(
+                      info['title']!,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
