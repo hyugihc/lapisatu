@@ -3,12 +3,7 @@ import 'package:flutter/material.dart';
 class DataPage extends StatefulWidget {
   const DataPage({super.key});
 
-  @override
-  State<DataPage> createState() => _DataPageState();
-}
-
-class _DataPageState extends State<DataPage> {
-  final List<String> _dataTitles = const [
+  static const List<String> dataTitles = [
     'Data Tingkat Pengangguran Terbuka 2025',
     'Data PDRB per Kapita Kabupaten Madiun',
     'Indeks Pembangunan Manusia (IPM) 2025',
@@ -20,7 +15,14 @@ class _DataPageState extends State<DataPage> {
     'Angka Harapan Hidup (AHH)',
     'Data Produksi Padi dan Palawija',
     'Luas Lahan Pertanian',
+    'Luas Rumah Repok',
   ];
+
+  @override
+  State<DataPage> createState() => _DataPageState();
+}
+
+class _DataPageState extends State<DataPage> {
   String? _selectedTitle;
   String _searchKeyword = '';
 
@@ -38,11 +40,12 @@ class _DataPageState extends State<DataPage> {
 
   @override
   Widget build(BuildContext context) {
-    final filterTitle = _dataTitles
+    final filterTitle = DataPage.dataTitles
         .where(
           (title) => title.toLowerCase().contains(_searchKeyword.toLowerCase()),
         )
         .toList();
+
     return Stack(
       children: [
         Scaffold(
@@ -91,7 +94,7 @@ class _DataPageState extends State<DataPage> {
                       TextField(
                         decoration: InputDecoration(
                           hintText: 'cari data tabel disini',
-                          prefixIcon: Icon(Icons.search),
+                          prefixIcon: const Icon(Icons.search),
                           filled: true,
                           fillColor: Colors.white,
                           border: OutlineInputBorder(
@@ -141,7 +144,7 @@ class _DataPageState extends State<DataPage> {
         borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             spreadRadius: 1,
             blurRadius: 5,
           ),
