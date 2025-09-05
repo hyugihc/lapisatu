@@ -29,11 +29,23 @@ class _HomePageState extends State<HomePage> {
     const MenuPage(),
   ];
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    void _onItemTapped(int index) {
+    if (index == 3) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) {
+          return const MenuPage(); 
+        },
+      );
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -43,9 +55,9 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Cari'),
+          BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Publikasi'),
           BottomNavigationBarItem(icon: Icon(Icons.stacked_bar_chart), label: 'Data'),
-          BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'Menu'),
+          BottomNavigationBarItem(icon: Icon(Icons.info_outline_rounded), label: 'Lainnya'),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.blue[800],
@@ -429,7 +441,7 @@ class MenuInfografis extends StatelessWidget {
                 },
                 child: Text(
                   'Lihat Semua',
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: TextStyle(decoration: TextDecoration.underline, color: Colors.grey[600]),
                   ),
                 ),
             ],
