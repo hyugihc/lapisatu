@@ -69,8 +69,8 @@ class HomeContent extends StatelessWidget {
     return SingleChildScrollView(
       child: Column(
         children: [
-          Container(
-            height: screenHeight * 0.4,
+          SizedBox(
+            height: screenHeight * 0.3,
             width: double.infinity,
             child: Stack(
               children: [
@@ -182,7 +182,7 @@ class MenuBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(12.0),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               spreadRadius: 2,
               blurRadius: 10,
               offset: const Offset(0, 5),
@@ -249,7 +249,7 @@ class MenuBar extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
+              color: Colors.blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Image.asset(imagePath, width: 50, height: 50),
@@ -336,7 +336,7 @@ class _StatsCardState extends State<StatsCard> {
                   borderRadius: BorderRadius.circular(12.0),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       spreadRadius: 1,
                       blurRadius: 8,
                     ),
@@ -379,7 +379,7 @@ class _StatsCardState extends State<StatsCard> {
                 shape: BoxShape.circle,
                 color: _currentPage == index
                     ? Colors.blueAccent
-                    : Colors.grey.withOpacity(0.5),
+                    : Colors.grey.withValues(alpha: 0.5),
               ),
             );
           }),
@@ -411,7 +411,7 @@ class MenuInfografis extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 8,
           ),
