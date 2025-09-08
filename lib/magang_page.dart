@@ -1,7 +1,41 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-class MagangPage extends StatelessWidget {
+class MagangPage extends StatefulWidget {
   const MagangPage({super.key});
+
+  @override
+  State<MagangPage> createState() => _MagangPage();
+}
+
+class _MagangPage extends State<MagangPage> {
+  final TextEditingController _nama = TextEditingController();
+  final TextEditingController _nik = TextEditingController();
+  final TextEditingController _noWa = TextEditingController();
+  final TextEditingController _email = TextEditingController();
+  final TextEditingController _req = TextEditingController();
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+  Future<void> _saveMagang({
+    required String name,
+    required String nik,
+    required String noWa,
+    required String email,
+    required String req,
+  }) async {
+    try {
+      await firestore.collection('intern-req').add({
+        'name': name,
+        'identity_num': nik,
+        'phone_num': noWa,
+        'email': email,
+        // 'keperluan':req
+      });
+      print('Pengajuan Berhasil Terkirim');
+    } catch (e) {
+      print('Error $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +62,10 @@ class MagangPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.white,
+                          ),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                         const SizedBox(height: 10),
@@ -38,7 +75,9 @@ class MagangPage extends StatelessWidget {
                             color: Colors.white,
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
-                            shadows: [Shadow(blurRadius: 4.0, color: Colors.black54)],
+                            shadows: [
+                              Shadow(blurRadius: 4.0, color: Colors.black54),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -47,7 +86,9 @@ class MagangPage extends StatelessWidget {
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 14,
-                            shadows: [Shadow(blurRadius: 2.0, color: Colors.black87)],
+                            shadows: [
+                              Shadow(blurRadius: 2.0, color: Colors.black87),
+                            ],
                           ),
                         ),
                       ],
@@ -63,7 +104,7 @@ class MagangPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12.0),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 10,
                       ),
                     ],
@@ -81,22 +122,26 @@ class MagangPage extends StatelessWidget {
                       const SizedBox(height: 16),
                       _buildMechanismItem(
                         number: '1.',
-                        text: 'Syarat pengajuan magang adalah Mahasiswa/siswa yang berstatus masih AKTIF belajar di kampus atau sekolah.',
+                        text:
+                            'Syarat pengajuan magang adalah Mahasiswa/siswa yang berstatus masih AKTIF belajar di kampus atau sekolah.',
                       ),
                       const SizedBox(height: 8),
                       _buildMechanismItem(
                         number: '2.',
-                        text: 'Mahasiswa/siswa harus mengirimkan surat pengantar resmi dan proposal dari kampus atau sekolah yang ditujukkan kepada Kepala BPS Kabupaten Madiun. Surat dan proposal dapat dikirimkan via Kantor POS atau datang langsung ke Kantor BPS Kabupaten Madiun. Jl Marsma TNI Anumerta R.Iswahjudi No.30, Jiwan Utara, Kec. Jiwan Kabupaten Madiun, Jawa Timur, 63164',
+                        text:
+                            'Mahasiswa/siswa harus mengirimkan surat pengantar resmi dan proposal dari kampus atau sekolah yang ditujukkan kepada Kepala BPS Kabupaten Madiun. Surat dan proposal dapat dikirimkan via Kantor POS atau datang langsung ke Kantor BPS Kabupaten Madiun. Jl Marsma TNI Anumerta R.Iswahjudi No.30, Jiwan Utara, Kec. Jiwan Kabupaten Madiun, Jawa Timur, 63164',
                       ),
                       const SizedBox(height: 8),
                       _buildMechanismItem(
                         number: '3.',
-                        text: 'Setelah surat masuk, BPS Kabupaten Madiun akan memproses dengan memperhatikan ketersediaan kuota magang.',
+                        text:
+                            'Setelah surat masuk, BPS Kabupaten Madiun akan memproses dengan memperhatikan ketersediaan kuota magang.',
                       ),
                       const SizedBox(height: 8),
                       _buildMechanismItem(
                         number: '4.',
-                        text: 'Informasi penerimaan akan disampaikan melalui surat balasan resmi yang dikirimkan ke alamat kampus atau sekolah.',
+                        text:
+                            'Informasi penerimaan akan disampaikan melalui surat balasan resmi yang dikirimkan ke alamat kampus atau sekolah.',
                       ),
                       const SizedBox(height: 24),
 
@@ -111,26 +156,44 @@ class MagangPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _buildTextField(label: 'Nama Lengkap'),
-                      _buildTextField(label: 'NIK/Nomor Kartu Pelajar'),
-                      _buildTextField(label: 'No WA Aktif'),
-                      _buildTextField(label: 'Email Aktif'),
-                      _buildTextField(label: 'Keperluan'),
+                      _buildTextField(label: 'Nama Lengkap', varText: _nama),
+                      _buildTextField(
+                        label: 'NIK/Nomor Kartu Pelajar',
+                        varText: _nik,
+                      ),
+                      _buildTextField(label: 'No WA Aktif', varText: _noWa),
+                      _buildTextField(label: 'Email Aktif', varText: _email),
+                      _buildTextField(label: 'Keperluan', varText: _req),
                       const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           ElevatedButton(
-                            onPressed: () {},
-                            child: const Text('Kirim'),
+                            onPressed: () {
+                              _saveMagang(
+                                name: _nama.text,
+                                nik: _nik.text,
+                                noWa: _noWa.text,
+                                email: _email.text,
+                                req: _req.text,
+                              );
+                              _nama.clear();
+                              _nik.clear();
+                              _noWa.clear();
+                              _email.clear();
+                              _req.clear();
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue[800],
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 30),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 30,
+                              ),
                             ),
+                            child: const Text('Kirim'),
                           ),
                         ],
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -147,20 +210,17 @@ class MagangPage extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          number,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+        Text(number, style: const TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(width: 8),
-        Expanded(
-          child: Text(text),
-        ),
+        Expanded(child: Text(text)),
       ],
     );
   }
-  
 
-  Widget _buildTextField({required String label}) {
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController varText,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
@@ -169,12 +229,16 @@ class MagangPage extends StatelessWidget {
           Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8.0),
           TextField(
+            controller: varText,
             decoration: InputDecoration(
               hintText: 'Jawaban anda',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.0),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12.0,
+                vertical: 10.0,
+              ),
               isDense: true,
             ),
           ),

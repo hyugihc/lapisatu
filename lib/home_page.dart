@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'dart:async';
 
 import 'search_page.dart';
 import 'data_page.dart';
@@ -58,19 +59,17 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// hompage beranda
+// homepage
 class HomeContent extends StatelessWidget {
   const HomeContent({super.key});
 
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    //scroll
     return SingleChildScrollView(
       child: Column(
         children: [
-          // background biru
-          Container(
+          SizedBox(
             height: screenHeight * 0.3,
             width: double.infinity,
             child: Stack(
@@ -183,14 +182,13 @@ class MenuBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(12.0),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               spreadRadius: 2,
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
           ],
         ),
-        // ===============================================
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -251,57 +249,142 @@ class MenuBar extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
+              color: Colors.blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Image.asset(imagePath, width: 50, height: 50),
           ),
           const SizedBox(height: 8),
-          Text(label, style: TextStyle(color: Colors.grey[700], fontSize: 12)),
         ],
       ),
     );
   }
 }
 
-class StatsCard extends StatelessWidget {
+class StatsCard extends StatefulWidget {
   const StatsCard({super.key});
 
   @override
+  State<StatsCard> createState() => _StatsCardState();
+}
+
+class _StatsCardState extends State<StatsCard> {
+  final List<Map<String, String>> statsData = [
+    {
+      'value': '4.30%',
+      'label': 'Tingkat pengangguran di kabupaten madiun 2025',
+    },
+    {
+      'value': '3.14%',
+      'label': 'Tingkat inflasi tahunan (y-on-y) agustus 2025',
+    },
+    {'value': '7.20%', 'label': 'Persentase penduduk miskin maret 2025'},
+  ];
+
+  int _currentPage = 0;
+  final PageController _pageController = PageController(initialPage: 0);
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
+      if (_currentPage < statsData.length - 1) {
+        _currentPage++;
+      } else {
+        _currentPage = 0;
+      }
+      if (_pageController.hasClients) {
+        _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeIn,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0),
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 8,
+    return Column(
+      children: [
+        SizedBox(
+          height: 100,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: statsData.length,
+            onPageChanged: (int page) {
+              setState(() {
+                _currentPage = page;
+              });
+            },
+            itemBuilder: (context, index) {
+              final data = statsData[index];
+              return Container(
+                width: MediaQuery.of(context).size.width,
+                margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                padding: const EdgeInsets.all(20.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12.0),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      spreadRadius: 1,
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      data['value']!,
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0D47A1),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        data['label']!,
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Text(
-            '4.30%',
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0D47A1),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              'Tingkat pengangguran di kabupaten madiun 2025',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
-            ),
-          ),
-        ],
-      ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(statsData.length, (index) {
+            return Container(
+              width: 8.0,
+              height: 8.0,
+              margin: const EdgeInsets.symmetric(
+                vertical: 10.0,
+                horizontal: 2.0,
+              ),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _currentPage == index
+                    ? Colors.blueAccent
+                    : Colors.grey.withValues(alpha: 0.5),
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 }
@@ -328,7 +411,7 @@ class MenuInfografis extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 8,
           ),
