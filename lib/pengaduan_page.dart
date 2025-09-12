@@ -14,15 +14,17 @@ class _PengaduanPage extends State<PengaduanPage> {
   final TextEditingController _noWa = TextEditingController();
   final TextEditingController _email = TextEditingController();
   final TextEditingController _pengaduan = TextEditingController();
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   Future<void> _savePengaduan({
+    required BuildContext context,
     required String tipe,
     required String name,
     required String noWa,
     required String email,
     required String pengaduan,
   }) async {
+    final firestore = FirebaseFirestore.instance;
+
     try {
       await firestore.collection('complain-req').add({
         'complain_type': tipe,
@@ -30,11 +32,79 @@ class _PengaduanPage extends State<PengaduanPage> {
         'phone_num': noWa,
         'email': email,
         'complain_text': pengaduan,
+        'timestamp': FieldValue.serverTimestamp(),
       });
-      print('BERHASIL DIKIRIM!');
+
+      // PENTING: Cek jika widget masih ada sebelum menampilkan dialog
+      if (!context.mounted) return;
+
+      // 2. Panggil dialog SUKSES
+      _showStatusDialog(
+        context,
+        icon: Icons.check_circle_outline,
+        color: Colors.green,
+        message: 'Berhasil Dikirim!',
+      );
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (!context.mounted) return;
+
+      Navigator.of(context).pop();
     } catch (e) {
       print(e);
+
+      if (!context.mounted) return;
+
+      // 3. Panggil dialog GAGAL
+      _showStatusDialog(
+        context,
+        icon: Icons.highlight_off,
+        color: Colors.red,
+        message: 'Gagal Terkirim\nSilakan Coba Lagi',
+      );
     }
+  }
+
+  void _showStatusDialog(
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required String message,
+  }) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // Otomatis tutup dialog setelah 2 detik
+        Future.delayed(const Duration(seconds: 2), () {
+          if (context.mounted) {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+          }
+        });
+
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 80),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -148,17 +218,13 @@ class _PengaduanPage extends State<PengaduanPage> {
                           ElevatedButton(
                             onPressed: () {
                               _savePengaduan(
+                                context: context,
                                 tipe: _type.text,
                                 name: _nama.text,
                                 noWa: _noWa.text,
                                 email: _email.text,
                                 pengaduan: _pengaduan.text,
                               );
-                              _type.clear();
-                              _nama.clear();
-                              _noWa.clear();
-                              _email.clear();
-                              _pengaduan.clear();
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue[800],

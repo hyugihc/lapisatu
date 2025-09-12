@@ -17,6 +17,7 @@ class _MagangPage extends State<MagangPage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   Future<void> _saveMagang({
+    required BuildContext context,
     required String name,
     required String nik,
     required String noWa,
@@ -29,12 +30,74 @@ class _MagangPage extends State<MagangPage> {
         'identity_num': nik,
         'phone_num': noWa,
         'email': email,
-        // 'keperluan':req
+        'keperluan': req,
+        'timestamp': FieldValue.serverTimestamp(),
       });
-      print('Pengajuan Berhasil Terkirim');
+      if (!context.mounted) return;
+      _showStatusDialog(
+        context,
+        icon: Icons.check_circle_outline,
+        color: Colors.green,
+        message: 'Berhasil Dikirim!',
+      );
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (!context.mounted) return;
+
+      Navigator.of(context).pop();
     } catch (e) {
       print('Error $e');
+      if (!context.mounted) return;
+
+      _showStatusDialog(
+        context,
+        icon: Icons.highlight_off,
+        color: Colors.red,
+        message: 'Gagal Terkirim\nSilakan Coba Lagi',
+      );
     }
+  }
+
+  void _showStatusDialog(
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required String message,
+  }) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // Otomatis tutup dialog setelah 2 detik
+        Future.delayed(const Duration(seconds: 2), () {
+          if (context.mounted) {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+          }
+        });
+
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 80),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -171,6 +234,7 @@ class _MagangPage extends State<MagangPage> {
                           ElevatedButton(
                             onPressed: () {
                               _saveMagang(
+                                context: context,
                                 name: _nama.text,
                                 nik: _nik.text,
                                 noWa: _noWa.text,

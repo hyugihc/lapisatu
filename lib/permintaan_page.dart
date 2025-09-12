@@ -21,8 +21,10 @@ class _PermintaanPage extends State<PermintaanPage> {
 
   bool _status = false;
   String? _localFilePath;
+  String? _pickedFileName;
 
   Future<void> _sendToDB({
+    required BuildContext context,
     required String nama,
     required String instansi,
     required String wa,
@@ -38,23 +40,82 @@ class _PermintaanPage extends State<PermintaanPage> {
         'email': email,
         'data_req': req,
         'path_file': pathFileCloud,
+        'timestamp': FieldValue.serverTimestamp(),
       });
-      print('Permintaan berhasil terkirim!');
+      if (!context.mounted) return;
+      _showStatusDialog(
+        context,
+        icon: Icons.check_circle_outline,
+        color: Colors.green,
+        message: 'Berhasil Dikirim!',
+      );
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (!context.mounted) return;
+
+      Navigator.of(context).pop();
     } catch (e) {
       print('Error: $e');
+      if (!context.mounted) return;
+
+      _showStatusDialog(
+        context,
+        icon: Icons.highlight_off,
+        color: Colors.red,
+        message: 'Gagal Terkirim\nSilakan Coba Lagi',
+      );
     }
   }
 
+  void _showStatusDialog(
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required String message,
+  }) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // Otomatis tutup dialog setelah 2 detik
+        Future.delayed(const Duration(seconds: 2), () {
+          if (context.mounted) {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+          }
+        });
+
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 80),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _pickAndSavePdf(BuildContext konteks) async {
-    // BUG
-    // 1. MEMILIH FILE PDF DARI PERANGKAT
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
     );
 
     if (result == null) {
-      // Pengguna membatalkan pemilihan file
       setState(() {
         _status = false;
       });
@@ -64,7 +125,6 @@ class _PermintaanPage extends State<PermintaanPage> {
       return;
     }
     // 2. MENYIAPKAN LOKASI PENYIMPANAN LOKAL
-    // Ambil file yang dipilih (kita asumsikan hanya satu file)
     PlatformFile pickedFile = result.files.first;
     File sourceFile = File(pickedFile.path!);
 
@@ -79,6 +139,7 @@ class _PermintaanPage extends State<PermintaanPage> {
       setState(() {
         _status = true;
         _localFilePath = newFile.path;
+        _pickedFileName = pickedFile.name;
       });
       print('File berhasil disimpan di: $_localFilePath');
 
@@ -87,6 +148,7 @@ class _PermintaanPage extends State<PermintaanPage> {
     } catch (e) {
       setState(() {
         _status = false;
+        _pickedFileName = null;
       });
       print('Error: $e');
     }
@@ -130,18 +192,19 @@ class _PermintaanPage extends State<PermintaanPage> {
     return Scaffold(
       body: Stack(
         children: [
+          // --- BAGIAN BACKGROUND HEADER (TETAP SAMA) ---
           Image.asset(
             'lib/assets/backgroundd.jpg',
             fit: BoxFit.cover,
             height: screenHeight * 0.4,
             width: double.infinity,
           ),
-
-          //isi
+          // --- KONTEN UTAMA DENGAN FORM ---
           SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // --- BAGIAN TEKS HEADER (TETAP SAMA) ---
                 SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -183,14 +246,20 @@ class _PermintaanPage extends State<PermintaanPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                //isi form
+                // --- CONTAINER FORM (DENGAN PENAMBAHAN UI NAMA FILE) ---
                 Container(
                   margin: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
                   padding: const EdgeInsets.all(20.0),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12.0),
-                    boxShadow: [BoxShadow(color: Colors.black, blurRadius: 10)],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: .1),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,44 +295,92 @@ class _PermintaanPage extends State<PermintaanPage> {
                         varText: _dataReq,
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
+
+                      // --- BAGIAN UPLOAD FILE YANG DIPERBARUI ---
                       const Text(
                         'Surat Permintaan Data',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              _pickAndSavePdf(context);
-                            },
-                            icon: const Icon(Icons.upload_file),
-                            label: const Text('Upad file'),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          _pickAndSavePdf(context);
+                        },
+                        icon: const Icon(Icons.upload_file),
+                        // Teks tombol berubah secara dinamis
+                        label: Text(
+                          _pickedFileName == null
+                              ? 'Pilih File PDF'
+                              : 'Ganti File',
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.blue[800],
+                          side: BorderSide(color: Colors.blue[800]!),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Widget untuk menampilkan nama file yang dipilih
+                      if (_pickedFileName != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
                           ),
-                          ElevatedButton(
-                            onPressed: () {
-                              _sendToDB(
-                                nama: _name.text,
-                                instansi: _instansi.text,
-                                wa: _noWa.text,
-                                email: _email.text,
-                                req: _dataReq.text,
-                                pathFileCloud: _localFilePath,
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue[800],
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 30,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.attach_file,
+                                color: Colors.black54,
+                                size: 20,
                               ),
-                            ),
-                            child: const Text('Kirim'),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  _pickedFileName!,
+                                  style: const TextStyle(fontSize: 14),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
+
+                      const SizedBox(height: 32),
+
+                      Center(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            _sendToDB(
+                              context: context,
+                              nama: _name.text,
+                              instansi: _instansi.text,
+                              wa: _noWa.text,
+                              email: _email.text,
+                              req: _dataReq.text,
+                              pathFileCloud: _localFilePath,
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue[800],
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 40,
+                              vertical: 12,
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          child: const Text('Kirim Permintaan'),
+                        ),
                       ),
                     ],
                   ),

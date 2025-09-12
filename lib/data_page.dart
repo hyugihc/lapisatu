@@ -1,17 +1,24 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:typed_data';
+import 'package:excel/excel.dart';
+import 'package:file_saver/file_saver.dart';
+
+import 'dart:math';
+
+import 'package:lapis_satu/notif_try.dart';
 
 class DataPage extends StatefulWidget {
-  const DataPage({super.key});
+  final Map<String, String> mapData;
+  const DataPage({super.key, required this.mapData});
 
   @override
   State<DataPage> createState() => _DataPageState();
 }
 
 class _DataPageState extends State<DataPage> {
-  bool _isLoading = true;
-  Map<String, String> _mapData = {};
-  List<String> _dataTitles = [];
+  late final List<String> _dataTitles;
 
   String? _selectedTitle;
   String _searchKeyword = '';
@@ -20,42 +27,13 @@ class _DataPageState extends State<DataPage> {
   @override
   void initState() {
     super.initState();
-    _fetchData(); // Panggil fungsi untuk mengambil data saat widget pertama kali dibuat
-  }
-
-  // === FUNGSI BARU UNTUK MENGAMBIL DATA DARI FIRESTORE ===
-  Future<void> _fetchData() async {
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection(
-            '/data-umum/title/list_title/',
-          ) // Sesuaikan dengan path Anda
-          .get();
-      print(snapshot.docs.isEmpty);
-
-      final fetchedMap = {
-        for (var doc in snapshot.docs)
-          (doc['judul'] as String): (doc['link'] as String),
-      };
-
-      setState(() {
-        _mapData = fetchedMap;
-        _dataTitles = _mapData.keys.toList(); // Ambil semua judul dari keys Map
-        _isLoading = false;
-      });
-    } catch (e) {
-      print("Error fetching data: $e");
-      setState(() {
-        _isLoading = true; // Hentikan loading jika ada error
-        // Anda bisa menambahkan logic untuk menampilkan pesan error di sini
-      });
-    }
+    _dataTitles = widget.mapData.keys.toList();
   }
 
   void _showDetail(String title) {
     setState(() {
       _selectedTitle = title;
-      _link = _mapData[title];
+      _link = widget.mapData[title];
     });
   }
 
@@ -101,60 +79,58 @@ class _DataPageState extends State<DataPage> {
               ],
             ),
           ),
-          body: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
+          body: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Cari Data',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8.0),
-                            TextField(
-                              decoration: InputDecoration(
-                                hintText: 'cari data tabel disini',
-                                prefixIcon: const Icon(Icons.search),
-                                filled: true,
-                                fillColor: Colors.white,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12.0),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                              onChanged: (value) {
-                                setState(() {
-                                  _searchKeyword = value;
-                                });
-                              },
-                            ),
-                          ],
+                      const Text(
+                        'Cari Data',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: filterTitle.length,
-                          itemBuilder: (context, index) {
-                            return _buildDataItem(title: filterTitle[index]);
-                          },
+                      const SizedBox(height: 8.0),
+                      TextField(
+                        decoration: InputDecoration(
+                          hintText: 'cari data tabel disini',
+                          prefixIcon: const Icon(Icons.search),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
+                        onChanged: (value) {
+                          setState(() {
+                            _searchKeyword = value;
+                          });
+                        },
                       ),
-                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: filterTitle.length,
+                    itemBuilder: (context, index) {
+                      return _buildDataItem(title: filterTitle[index]);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
         ),
 
         if (_selectedTitle != null)
@@ -228,12 +204,152 @@ class _DetailDataPage extends State<DetailDataPage> {
   late Future<QuerySnapshot> _kontakFuture;
   List<String> _namaKolom = [];
 
-  void _downloadData(BuildContext context) {
-    final snackBar = SnackBar(
-      content: const Text('Mendownload data... (simulasi)'),
-      backgroundColor: Colors.blue[800],
+  Future<void> _downloadData({
+    required BuildContext context,
+    required List<Map<String, dynamic>> dataExc,
+    required String title,
+  }) async {
+    // Tampilkan notifikasi awal
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Mempersiapkan file Excel...'),
+        backgroundColor: Colors.blue[800],
+      ),
     );
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+    // Lakukan validasi, jangan proses jika tidak ada data
+    if (dataExc.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tidak ada data untuk diunduh.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      // 1. BUAT OBJEK EXCEL DAN SHEET
+      final excel = Excel.createExcel();
+      final Sheet sheetObject = excel['Sheet1'];
+
+      // 2. TAMBAHKAN HEADER SECARA OTOMATIS
+      // Mengambil kunci (nama kolom) dari data pertama sebagai header
+      final List<String> headers = dataExc.first.keys.toList();
+      sheetObject.appendRow(
+        headers.map((header) => TextCellValue(header)).toList(),
+      );
+
+      // 3. TAMBAHKAN DATA BARIS
+      for (var dataRow in dataExc) {
+        // Mengambil nilai dari setiap baris data
+        final List<dynamic> rowValues = dataRow.values.toList();
+        sheetObject.appendRow(
+          rowValues.map((value) => TextCellValue(value.toString())).toList(),
+        );
+      }
+
+      // 4. SIMPAN FILE KE PERANGKAT
+      final Uint8List? fileBytes = excel.save() as Uint8List?;
+
+      if (fileBytes != null) {
+        String timestamp = DateTime.now().toIso8601String().replaceAll(
+          ':',
+          '-',
+        );
+        String fileName = '$title$timestamp.xlsx';
+
+        // Gunakan file_saver untuk memunculkan dialog simpan
+        String filePath = await FileSaver.instance.saveFile(
+          name: fileName,
+          bytes: fileBytes,
+          fileExtension: 'xlsx',
+          mimeType: MimeType.microsoftExcel,
+        );
+        NotificationService().init();
+        NotificationService().showNotification(
+          0,
+          'Berhasil di Download',
+          'File disimpan di $filePath',
+        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Berhasil disimpan di $filePath'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error saat download Excel: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Terjadi kesalahan: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  BarChartDataBundle transformSnapshotToBarData({
+    required QuerySnapshot snapshot,
+    required String fieldNameForY,
+  }) {
+    if (snapshot.docs.isEmpty) {
+      // Jika tidak ada data, kembalikan paket kosong
+      return BarChartDataBundle(barGroups: [], bottomTitles: []);
+    }
+
+    // Siapkan dua list kosong
+    List<BarChartGroupData> barGroups = [];
+    List<String> bottomTitles = [];
+
+    // Looping melalui setiap dokumen beserta indeksnya
+    snapshot.docs.asMap().entries.forEach((entry) {
+      int index = entry.key;
+      var doc = entry.value;
+      final data = doc.data() as Map<String, dynamic>;
+
+      // 1. Sumbu X SELALU menggunakan indeks (0, 1, 2, ...)
+      final int xValue = index;
+      final double yValue = (data[fieldNameForY] as num?)?.toDouble() ?? 0.0;
+
+      // Tambahkan data bar ke list barGroups
+      barGroups.add(
+        BarChartGroupData(
+          x: xValue,
+          showingTooltipIndicators: [0],
+          barRods: [
+            BarChartRodData(
+              toY: yValue,
+              color: Colors.lightBlue,
+              width: 16,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(4),
+                topRight: Radius.circular(4),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      // 2. Tentukan LABEL untuk sumbu X
+      if (data.containsKey('tahun') && data['tahun'] != null) {
+        // Jika ada 'tahun', gunakan nilainya sebagai label
+        bottomTitles.add(data['tahun'].toString());
+      } else {
+        // Jika tidak, gunakan indeks sebagai label fallback
+        bottomTitles.add(index.toString());
+      }
+    });
+
+    // Kembalikan "paket" yang berisi kedua list tersebut
+    return BarChartDataBundle(barGroups: barGroups, bottomTitles: bottomTitles);
   }
 
   @override
@@ -241,6 +357,7 @@ class _DetailDataPage extends State<DetailDataPage> {
     super.initState();
     _kontakFuture = FirebaseFirestore.instance
         .collection(widget.linkData as String)
+        .orderBy('tahun')
         .get();
   }
 
@@ -322,6 +439,30 @@ class _DetailDataPage extends State<DetailDataPage> {
             );
           }).toList();
 
+          final BarChartDataBundle chartData = transformSnapshotToBarData(
+            snapshot: snapshot.data!,
+            fieldNameForY: _namaKolom[1],
+          );
+
+          final List<double> yValues = chartData.barGroups
+              .map(
+                (group) => group.barRods.first.toY,
+              ) // Ambil tinggi setiap bar
+              .toList();
+
+          final double minYValue = yValues.reduce(min);
+          final double maxYValue = yValues.reduce(max);
+
+          double paddingY;
+          if (minYValue == maxYValue) {
+            // Jika semua nilai sama, beri bantalan absolut
+            paddingY = minYValue * 0.4; // 10% dari nilainya
+          } else {
+            // Jika nilai berbeda, beri bantalan berdasarkan rentangnya
+            final range = maxYValue - minYValue;
+            paddingY = range * 0.4; // 10% dari rentang
+          }
+
           return SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -395,7 +536,22 @@ class _DetailDataPage extends State<DetailDataPage> {
                   const SizedBox(height: 20),
                   Center(
                     child: ElevatedButton.icon(
-                      onPressed: () => _downloadData(context),
+                      onPressed: () {
+                        final List<Map<String, dynamic>> dataExc =
+                            snapshot.data?.docs.map((dt) {
+                              final data = dt.data() as Map<String, dynamic>;
+                              return {
+                                'tahun': data['tahun'] ?? 0,
+                                _namaKolom[1]: data[_namaKolom[1]] ?? 'N/A',
+                              };
+                            }).toList() ??
+                            [];
+                        _downloadData(
+                          context: context,
+                          dataExc: dataExc,
+                          title: widget.title,
+                        );
+                      },
 
                       icon: const Icon(Icons.download),
                       label: const Text('Download Data'),
@@ -414,6 +570,59 @@ class _DetailDataPage extends State<DetailDataPage> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
+                  Card(
+                    child: Center(
+                      child: AspectRatio(
+                        aspectRatio: 1.5,
+                        child: BarChart(
+                          BarChartData(
+                            barTouchData: BarTouchData(
+                              enabled: true,
+                              touchTooltipData: BarTouchTooltipData(
+                                getTooltipColor: (group) => Colors.transparent,
+                                tooltipPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                            minY: (minYValue - paddingY).floorToDouble() < 0
+                                ? 0
+                                : (minYValue - paddingY).floorToDouble(),
+                            maxY: (maxYValue + paddingY).ceilToDouble(),
+                            alignment: BarChartAlignment.spaceEvenly,
+                            barGroups: chartData.barGroups,
+                            titlesData: FlTitlesData(
+                              show: true,
+                              bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 30,
+                                  getTitlesWidget:
+                                      (double value, TitleMeta meta) {
+                                        final String title = chartData
+                                            .bottomTitles[value.toInt()];
+                                        return SideTitleWidget(
+                                          meta: meta,
+                                          child: Text(title),
+                                        );
+                                      },
+                                ),
+                              ),
+                              rightTitles: AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                              leftTitles: AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                              topTitles: AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                            ),
+                            borderData: FlBorderData(show: true),
+                            gridData: const FlGridData(show: false),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -422,4 +631,11 @@ class _DetailDataPage extends State<DetailDataPage> {
       ),
     );
   }
+}
+
+class BarChartDataBundle {
+  final List<BarChartGroupData> barGroups;
+  final List<String> bottomTitles;
+
+  BarChartDataBundle({required this.barGroups, required this.bottomTitles});
 }

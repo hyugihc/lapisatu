@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'dart:async';
 
 import 'search_page.dart';
@@ -9,10 +8,21 @@ import 'permintaan_page.dart';
 import 'konsultasi_page.dart';
 import 'pengaduan_page.dart';
 import 'magang_page.dart';
+import 'infografis.dart';
+import 'notif_try.dart';
 
-//frame
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final Map<String, String> mapData;
+  final List<String> imgInfografis;
+  final List<Map<String, String>> pubSample;
+  final List<Map<String, String>> statsData;
+  const HomePage({
+    super.key,
+    required this.mapData,
+    required this.imgInfografis,
+    required this.pubSample,
+    required this.statsData,
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -21,18 +31,40 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  // listbutton
-  static final List<Widget> _pages = <Widget>[
-    const HomeContent(),
-    const SearchPage(),
-    const DataPage(),
-    const MenuPage(),
-  ];
+  late final List<Widget> _pages;
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (index == 3) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) {
+          return const MenuPage();
+        },
+      );
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // 2. Isi list-nya di dalam initState, di mana 'widget.mapData' sudah tersedia.
+    _pages = <Widget>[
+      HomeContent(
+        mapData: widget.mapData,
+        imgInfografis: widget.imgInfografis,
+        statsData: widget.statsData,
+      ),
+      SearchPage(pubSample: widget.pubSample),
+      DataPage(mapData: widget.mapData),
+      const MenuPage(),
+    ];
+    NotificationService().init();
   }
 
   @override
@@ -43,12 +75,15 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Cari'),
+          BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Publikasi'),
           BottomNavigationBarItem(
             icon: Icon(Icons.stacked_bar_chart),
             label: 'Data',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'Menu'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.info_outline_rounded),
+            label: 'Lainnya',
+          ),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.blue[800],
@@ -60,9 +95,22 @@ class _HomePageState extends State<HomePage> {
 }
 
 // homepage
-class HomeContent extends StatelessWidget {
-  const HomeContent({super.key});
+class HomeContent extends StatefulWidget {
+  final Map<String, String> mapData;
+  final List<String> imgInfografis;
+  final List<Map<String, String>> statsData;
+  const HomeContent({
+    super.key,
+    required this.mapData,
+    required this.imgInfografis,
+    required this.statsData,
+  });
 
+  @override
+  State<HomeContent> createState() => _HomeContent();
+}
+
+class _HomeContent extends State<HomeContent> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -110,7 +158,7 @@ class HomeContent extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        const SearchBar(),
+                        SearchBar(mapData: widget.mapData),
                       ],
                     ),
                   ),
@@ -128,13 +176,12 @@ class HomeContent extends StatelessWidget {
                 const MenuBar(),
                 Transform.translate(
                   offset: const Offset(0, -30),
-                  child: const StatsCard(),
+                  child: StatsCard(statsData: widget.statsData),
                 ),
                 Transform.translate(
                   offset: const Offset(0, -30),
-                  child: const MenuInfografis(),
+                  child: MenuInfografis(imagePaths: widget.imgInfografis),
                 ),
-                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -144,24 +191,51 @@ class HomeContent extends StatelessWidget {
   }
 }
 
-//widget bagian homepage
 class SearchBar extends StatelessWidget {
-  const SearchBar({super.key});
+  final Map<String, String> mapData;
+  const SearchBar({super.key, required this.mapData});
+
   @override
   Widget build(BuildContext context) {
+    final List<String> dataTitles = mapData.keys.toList();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: 'cari data disini...',
-          filled: true,
-          fillColor: Colors.white,
-          prefixIcon: const Icon(Icons.search),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(25.0),
-            borderSide: BorderSide.none,
-          ),
-        ),
+      child: Autocomplete<String>(
+        optionsBuilder: (TextEditingValue textEditingValue) {
+          if (textEditingValue.text == '') {
+            return const Iterable<String>.empty();
+          }
+          return dataTitles.where(
+            (title) => title.toLowerCase().contains(
+              textEditingValue.text.toLowerCase(),
+            ),
+          );
+        },
+        fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+          return TextField(
+            controller: controller,
+            focusNode: focusNode,
+            decoration: InputDecoration(
+              hintText: 'cari data disini...',
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(borderSide: BorderSide.none),
+            ),
+          );
+        },
+        onSelected: (String selection) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetailDataPage(
+                title: selection,
+                onBack: () => Navigator.pop(context),
+                linkData: mapData[selection],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -194,7 +268,7 @@ class MenuBar extends StatelessWidget {
           children: [
             _buildMenuItem(
               context,
-              'lib/assets/mobile-analysis.png',
+              'lib/assets/permintaan data.png',
               'Permintaan',
               () => Navigator.push(
                 context,
@@ -255,6 +329,7 @@ class MenuBar extends StatelessWidget {
             child: Image.asset(imagePath, width: 50, height: 50),
           ),
           const SizedBox(height: 8),
+          Text(label, style: TextStyle(color: Colors.grey[700], fontSize: 12)),
         ],
       ),
     );
@@ -262,25 +337,14 @@ class MenuBar extends StatelessWidget {
 }
 
 class StatsCard extends StatefulWidget {
-  const StatsCard({super.key});
+  final List<Map<String, String>> statsData;
+  const StatsCard({super.key, required this.statsData});
 
   @override
   State<StatsCard> createState() => _StatsCardState();
 }
 
 class _StatsCardState extends State<StatsCard> {
-  final List<Map<String, String>> statsData = [
-    {
-      'value': '4.30%',
-      'label': 'Tingkat pengangguran di kabupaten madiun 2025',
-    },
-    {
-      'value': '3.14%',
-      'label': 'Tingkat inflasi tahunan (y-on-y) agustus 2025',
-    },
-    {'value': '7.20%', 'label': 'Persentase penduduk miskin maret 2025'},
-  ];
-
   int _currentPage = 0;
   final PageController _pageController = PageController(initialPage: 0);
   Timer? _timer;
@@ -289,7 +353,7 @@ class _StatsCardState extends State<StatsCard> {
   void initState() {
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
-      if (_currentPage < statsData.length - 1) {
+      if (_currentPage < widget.statsData.length - 1) {
         _currentPage++;
       } else {
         _currentPage = 0;
@@ -319,14 +383,14 @@ class _StatsCardState extends State<StatsCard> {
           height: 100,
           child: PageView.builder(
             controller: _pageController,
-            itemCount: statsData.length,
+            itemCount: widget.statsData.length,
             onPageChanged: (int page) {
               setState(() {
                 _currentPage = page;
               });
             },
             itemBuilder: (context, index) {
-              final data = statsData[index];
+              final data = widget.statsData[index];
               return Container(
                 width: MediaQuery.of(context).size.width,
                 margin: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -367,7 +431,7 @@ class _StatsCardState extends State<StatsCard> {
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(statsData.length, (index) {
+          children: List.generate(widget.statsData.length, (index) {
             return Container(
               width: 8.0,
               height: 8.0,
@@ -379,68 +443,12 @@ class _StatsCardState extends State<StatsCard> {
                 shape: BoxShape.circle,
                 color: _currentPage == index
                     ? Colors.blueAccent
-                    : Colors.grey.withValues(alpha: 0.5),
+                    : Colors.grey.withValues(alpha: .5),
               ),
             );
           }),
         ),
       ],
-    );
-  }
-}
-
-class MenuInfografis extends StatelessWidget {
-  const MenuInfografis({super.key});
-
-  final List<String> imagePaths = const [
-    'lib/assets/infografisbps1.jpg',
-    'lib/assets/infografisbps2.jpg',
-    'lib/assets/WhatsApp Image 2025-05-09 at 11.22.09 AM.jpeg',
-    'lib/assets/infografisbps2.jpg',
-    'lib/assets/infografisbps1.jpg',
-    'lib/assets/infografisbps2.jpg',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(16.0),
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            spreadRadius: 1,
-            blurRadius: 8,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Infografis',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          MasonryGridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            itemCount: imagePaths.length,
-            itemBuilder: (context, index) {
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(12.0),
-                child: Image.asset(imagePaths[index]),
-              );
-            },
-          ),
-        ],
-      ),
     );
   }
 }

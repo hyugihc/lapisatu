@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'loading_screen.dart';
+import 'notif_try.dart';
 
 void main() async {
   // 1. Ensure that the Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // 3. Run the app ONCE after initialization is complete
+  await NotificationService().init();
   runApp(const MyApp());
 }
 
