@@ -32,6 +32,8 @@ class _MagangPage extends State<MagangPage> {
         'email': email,
         'keperluan': req,
         'timestamp': FieldValue.serverTimestamp(),
+        'title': 'Pengajuan Magang',
+        'status': 'pending',
       });
       if (!context.mounted) return;
       _showStatusDialog(

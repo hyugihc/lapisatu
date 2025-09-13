@@ -34,13 +34,15 @@ class _PermintaanPage extends State<PermintaanPage> {
   }) async {
     try {
       await firestore.collection('data-req').add({
-        'nama': nama,
+        'name': nama,
         'instansi': instansi,
         'phone_num': wa,
         'email': email,
         'data_req': req,
         'path_file': pathFileCloud,
         'timestamp': FieldValue.serverTimestamp(),
+        'title': 'Permintaan Data',
+        'status': 'pending',
       });
       if (!context.mounted) return;
       _showStatusDialog(

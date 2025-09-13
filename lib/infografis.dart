@@ -53,7 +53,6 @@ class MenuInfografis extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
           MasonryGridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -63,7 +62,7 @@ class MenuInfografis extends StatelessWidget {
             itemCount: imagePaths.length,
             itemBuilder: (context, index) {
               return ClipRRect(
-                borderRadius: BorderRadius.circular(12.0),
+                borderRadius: BorderRadius.circular(5.0),
                 child: CachedNetworkImage(
                   imageUrl: imagePaths[index],
                   placeholder: (context, url) =>
@@ -253,11 +252,12 @@ class _InfografisLengkapState extends State<InfografisLengkap> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // <-- PERUBAHAN 2
-                      Image.network(
-                        info['image']!,
+                      CachedNetworkImage(
+                        imageUrl: info['image']!,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
+                        placeholder: (context, url) =>
+                            const Center(child: CircularProgressIndicator()),
+                        errorWidget: (context, error, stackTrace) {
                           return Container(
                             height: 100, // Beri tinggi agar terlihat
                             color: Colors.grey[200],

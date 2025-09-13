@@ -53,7 +53,6 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // 2. Isi list-nya di dalam initState, di mana 'widget.mapData' sudah tersedia.
     _pages = <Widget>[
       HomeContent(
         mapData: widget.mapData,
@@ -181,6 +180,15 @@ class _HomeContent extends State<HomeContent> {
                 Transform.translate(
                   offset: const Offset(0, -30),
                   child: MenuInfografis(imagePaths: widget.imgInfografis),
+                ),
+                Padding(
+                  padding: EdgeInsetsGeometry.only(left: 16, right: 16),
+                  child: Card(
+                    child: Padding(
+                      padding: EdgeInsetsGeometry.all(16),
+                      child: Image.asset('lib/assets/Jadwal Petugas PST.png'),
+                    ),
+                  ),
                 ),
               ],
             ),

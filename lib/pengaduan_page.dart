@@ -33,6 +33,8 @@ class _PengaduanPage extends State<PengaduanPage> {
         'email': email,
         'complain_text': pengaduan,
         'timestamp': FieldValue.serverTimestamp(),
+        'title': 'Pengaduan',
+        'status': 'pending',
       });
 
       // PENTING: Cek jika widget masih ada sebelum menampilkan dialog

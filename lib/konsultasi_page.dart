@@ -207,6 +207,8 @@ class _FormulirKonsultasiPageState extends State<FormulirKonsultasiPage> {
         'topik': topik,
         'date': tgl,
         'timestamp': FieldValue.serverTimestamp(),
+        'title': 'Konsultasi',
+        'status': 'pending',
       });
       if (!context.mounted) return;
       _showStatusDialog(

@@ -30,10 +30,20 @@ class _DataPageState extends State<DataPage> {
     _dataTitles = widget.mapData.keys.toList();
   }
 
-  void _showDetail(String title) {
+  void _showDetail(String title, BuildContext context) {
     setState(() {
       _selectedTitle = title;
       _link = widget.mapData[title];
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DetailDataPage(
+            title: _selectedTitle as String,
+            onBack: _showList,
+            linkData: _link,
+          ),
+        ),
+      );
     });
   }
 
@@ -132,15 +142,6 @@ class _DataPageState extends State<DataPage> {
             ),
           ),
         ),
-
-        if (_selectedTitle != null)
-          Positioned.fill(
-            child: DetailDataPage(
-              title: _selectedTitle!,
-              onBack: _showList,
-              linkData: _link,
-            ),
-          ),
       ],
     );
   }
@@ -160,7 +161,7 @@ class _DataPageState extends State<DataPage> {
         ],
       ),
       child: InkWell(
-        onTap: () => _showDetail(title),
+        onTap: () => _showDetail(title, context),
         borderRadius: BorderRadius.circular(12.0),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
@@ -385,7 +386,10 @@ class _DetailDataPage extends State<DetailDataPage> {
 
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: widget.onBack,
+          onPressed: () {
+            widget.onBack;
+            Navigator.of(context).pop();
+          },
         ),
       ),
       body: FutureBuilder<QuerySnapshot>(
@@ -403,7 +407,9 @@ class _DetailDataPage extends State<DetailDataPage> {
 
           // 3. Jika tidak ada data
           if (snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('Belum ada data.'));
+            return const Center(
+              child: Text('Belum ada data / Atau Kemungkinan ada kesalahan!'),
+            );
           }
 
           Map<String, dynamic> dataColumns =
@@ -413,27 +419,20 @@ class _DetailDataPage extends State<DetailDataPage> {
           List<DataRow> dataRows = snapshot.data!.docs.asMap().entries.map((
             entry,
           ) {
-            // Menggunakan asMap().entries.map() untuk mendapatkan index
             int index = entry.key;
             DocumentSnapshot document = entry.value;
             Map<String, dynamic> data =
                 document.data()! as Map<String, dynamic>;
             return DataRow(
-              // Memberi warna selang-seling pada baris
               color: WidgetStateProperty.resolveWith<Color?>((states) {
                 if (index.isEven) {
-                  // Warna untuk baris genap (indeks 0, 2, 4, ...)
                   return Colors.grey.withValues(alpha: .1);
                 }
-                // Baris ganjil akan transparan (default)
                 return null;
               }),
               cells: _namaKolom.map((kolom) {
                 return DataCell(
-                  Center(
-                    // Gunakan 'kolom' sebagai kunci untuk mengambil data secara dinamis
-                    child: Text((data[kolom] ?? '-').toString()),
-                  ),
+                  Center(child: Text((data[kolom] ?? '-').toString())),
                 );
               }).toList(),
             );
