@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -28,10 +25,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
         return windows;
       case TargetPlatform.linux:
@@ -47,30 +41,49 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDxM9J9J4Q27qVojgHu2QBT6I3aMm3mT5o',
-    appId: '1:210805940466:android:e272ff921f1f084134706b',
-    messagingSenderId: '210805940466',
-    projectId: 'trial-project-7fc79',
-    storageBucket: 'trial-project-7fc79.firebasestorage.app',
+    apiKey: 'AIzaSyAfCE4jIu0dNpNKqKHQg_x-f4cJZd6zzpg',
+    appId: '1:938584470555:android:02b14d45f11366406b34be',
+    messagingSenderId: '938584470555',
+    projectId: 'lapissatu-bps-madiun-kab',
+    storageBucket: 'lapissatu-bps-madiun-kab.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDFRjdQEjsmTquqYbJSSUcOZivGlI2BE-Y',
-    appId: '1:210805940466:ios:17660fe559f8f16734706b',
-    messagingSenderId: '210805940466',
-    projectId: 'trial-project-7fc79',
-    storageBucket: 'trial-project-7fc79.firebasestorage.app',
+    apiKey: 'AIzaSyBwkLi4WSL1rI6x_AwTmZRJENNQ4NCpSu8',
+    appId: '1:938584470555:ios:fb6646fdcc0082306b34be',
+    messagingSenderId: '938584470555',
+    projectId: 'lapissatu-bps-madiun-kab',
+    storageBucket: 'lapissatu-bps-madiun-kab.firebasestorage.app',
     iosBundleId: 'com.example.lapisSatu',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyBVnuqh9h0FT_NNl2aDAcCFzXqMi_TxbEM',
-    appId: '1:210805940466:web:42f3c2dc2eef01cd34706b',
-    messagingSenderId: '210805940466',
-    projectId: 'trial-project-7fc79',
-    authDomain: 'trial-project-7fc79.firebaseapp.com',
-    storageBucket: 'trial-project-7fc79.firebasestorage.app',
-    measurementId: 'G-01P5JTFXKP',
+    apiKey: 'AIzaSyAXndMXs5e_o9umuGdt4nT50uO8fPJTm2c',
+    appId: '1:938584470555:web:68bcbe0d95fd08aa6b34be',
+    messagingSenderId: '938584470555',
+    projectId: 'lapissatu-bps-madiun-kab',
+    authDomain: 'lapissatu-bps-madiun-kab.firebaseapp.com',
+    storageBucket: 'lapissatu-bps-madiun-kab.firebasestorage.app',
+    measurementId: 'G-BY07RPW6JM',
+  );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyAXndMXs5e_o9umuGdt4nT50uO8fPJTm2c',
+    appId: '1:938584470555:web:68bcbe0d95fd08aa6b34be',
+    messagingSenderId: '938584470555',
+    projectId: 'lapissatu-bps-madiun-kab',
+    authDomain: 'lapissatu-bps-madiun-kab.firebaseapp.com',
+    storageBucket: 'lapissatu-bps-madiun-kab.firebasestorage.app',
+    measurementId: 'G-BY07RPW6JM',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyBwkLi4WSL1rI6x_AwTmZRJENNQ4NCpSu8',
+    appId: '1:938584470555:ios:fb6646fdcc0082306b34be',
+    messagingSenderId: '938584470555',
+    projectId: 'lapissatu-bps-madiun-kab',
+    storageBucket: 'lapissatu-bps-madiun-kab.firebasestorage.app',
+    iosBundleId: 'com.example.lapisSatu',
   );
 
 }
