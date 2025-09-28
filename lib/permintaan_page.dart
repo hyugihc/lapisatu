@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'send_notif.dart';
 
 class PermintaanPage extends StatefulWidget {
   const PermintaanPage({super.key});
@@ -52,6 +53,10 @@ class _PermintaanPage extends State<PermintaanPage> {
         message: 'Berhasil Dikirim!',
       );
       await Future.delayed(const Duration(seconds: 2));
+      sendNotificationV1(
+        title: 'Permintaan Data',
+        body: 'Permintaan data dari $nama telah masuk',
+      );
 
       if (!context.mounted) return;
 

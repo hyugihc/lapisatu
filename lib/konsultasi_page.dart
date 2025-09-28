@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'send_notif.dart';
 
 Future<void> _launchURL() async {
   final Uri url = Uri.parse('https://halopst.web.bps.go.id');
@@ -218,6 +219,11 @@ class _FormulirKonsultasiPageState extends State<FormulirKonsultasiPage> {
         message: 'Berhasil Dikirim!',
       );
       await Future.delayed(const Duration(seconds: 2));
+
+      sendNotificationV1(
+        title: 'Permintaan Konsultasi',
+        body: 'Permintaan konsultasi dari $nama telah masuk',
+      );
 
       if (!context.mounted) return;
 

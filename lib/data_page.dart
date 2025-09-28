@@ -204,6 +204,11 @@ class DetailDataPage extends StatefulWidget {
 class _DetailDataPage extends State<DetailDataPage> {
   late Future<QuerySnapshot> _kontakFuture;
   List<String> _namaKolom = [];
+  List<DocumentSnapshot> _documents = [];
+  bool _isDisplayChart = true;
+
+  int? _sortColumnIndex;
+  bool _isSortAscending = true;
 
   Future<void> _downloadData({
     required BuildContext context,
@@ -297,28 +302,56 @@ class _DetailDataPage extends State<DetailDataPage> {
     }
   }
 
-  BarChartDataBundle transformSnapshotToBarData({
-    required QuerySnapshot snapshot,
-    required String fieldNameForY,
+  Map<String, String> _findColumnFitName({
+    required Map<String, dynamic> dataFirst,
   }) {
-    if (snapshot.docs.isEmpty) {
-      // Jika tidak ada data, kembalikan paket kosong
+    String xLabel = '';
+    String yCol = '';
+
+    for (var col in _namaKolom) {
+      if (dataFirst[col].runtimeType == String) {
+        xLabel = col;
+        break;
+      } else if (dataFirst[col] is num) {
+        yCol = col;
+      }
+    }
+    if (xLabel.isEmpty) {
+      for (var kol in _namaKolom) {
+        if (kol.toLowerCase() == 'tahun' || kol.toLowerCase() == 'year') {
+          xLabel = kol;
+          break;
+        }
+      }
+    }
+    return {'xlabel': xLabel, 'ylabel': yCol};
+  }
+
+  BarChartDataBundle transformSnapshotToBarData({
+    required List<DocumentSnapshot> dokumen,
+  }) {
+    if (dokumen.isEmpty) {
       return BarChartDataBundle(barGroups: [], bottomTitles: []);
     }
 
-    // Siapkan dua list kosong
     List<BarChartGroupData> barGroups = [];
     List<String> bottomTitles = [];
+    final Map<String, dynamic> firstData =
+        dokumen.first.data() as Map<String, dynamic>;
 
+    final Map<String, String> xyLabel = _findColumnFitName(
+      dataFirst: firstData,
+    );
     // Looping melalui setiap dokumen beserta indeksnya
-    snapshot.docs.asMap().entries.forEach((entry) {
+    dokumen.asMap().entries.forEach((entry) {
       int index = entry.key;
       var doc = entry.value;
       final data = doc.data() as Map<String, dynamic>;
 
       // 1. Sumbu X SELALU menggunakan indeks (0, 1, 2, ...)
       final int xValue = index;
-      final double yValue = (data[fieldNameForY] as num?)?.toDouble() ?? 0.0;
+      final double yValue =
+          (data[xyLabel['ylabel']] as num?)?.toDouble() ?? 0.0;
 
       // Tambahkan data bar ke list barGroups
       barGroups.add(
@@ -340,11 +373,9 @@ class _DetailDataPage extends State<DetailDataPage> {
       );
 
       // 2. Tentukan LABEL untuk sumbu X
-      if (data.containsKey('tahun') && data['tahun'] != null) {
-        // Jika ada 'tahun', gunakan nilainya sebagai label
-        bottomTitles.add(data['tahun'].toString());
+      if (xyLabel['xlabel']!.isNotEmpty) {
+        bottomTitles.add(data[xyLabel['xlabel']].toString());
       } else {
-        // Jika tidak, gunakan indeks sebagai label fallback
         bottomTitles.add(index.toString());
       }
     });
@@ -353,12 +384,38 @@ class _DetailDataPage extends State<DetailDataPage> {
     return BarChartDataBundle(barGroups: barGroups, bottomTitles: bottomTitles);
   }
 
+  void _onSort(int columnIndex, bool ascending) {
+    setState(() {
+      _sortColumnIndex = columnIndex;
+      _isSortAscending = ascending;
+
+      final String sortColumnName = _namaKolom[columnIndex];
+
+      _documents.sort((a, b) {
+        final dataA = a.data() as Map<String, dynamic>;
+        final dataB = b.data() as Map<String, dynamic>;
+
+        // Ambil value, perhatikan jika ada dokumen yang tidak punya kolom ini (akan bernilai null)
+        final valA = dataA[sortColumnName];
+        final valB = dataB[sortColumnName];
+
+        // Atur agar baris dengan data null selalu di bawah
+        if (valA == null) return 1;
+        if (valB == null) return -1;
+
+        // Gunakan compareTo untuk sorting
+        final int result = (valA.toString()).compareTo(valB.toString());
+
+        return ascending ? result : -result;
+      });
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _kontakFuture = FirebaseFirestore.instance
         .collection(widget.linkData as String)
-        .orderBy('tahun')
         .get();
   }
 
@@ -411,14 +468,14 @@ class _DetailDataPage extends State<DetailDataPage> {
               child: Text('Belum ada data / Atau Kemungkinan ada kesalahan!'),
             );
           }
-
+          if (_documents.isEmpty) {
+            _documents = snapshot.data!.docs;
+          }
           Map<String, dynamic> dataColumns =
               snapshot.data!.docs.first.data() as Map<String, dynamic>;
           _namaKolom = dataColumns.keys.toList();
 
-          List<DataRow> dataRows = snapshot.data!.docs.asMap().entries.map((
-            entry,
-          ) {
+          List<DataRow> dataRows = _documents.asMap().entries.map((entry) {
             int index = entry.key;
             DocumentSnapshot document = entry.value;
             Map<String, dynamic> data =
@@ -437,29 +494,29 @@ class _DetailDataPage extends State<DetailDataPage> {
               }).toList(),
             );
           }).toList();
+          BarChartDataBundle? chartData;
+          List<double>? yValues;
+          double? minYValue;
+          double? maxYValue;
+          double? paddingY;
 
-          final BarChartDataBundle chartData = transformSnapshotToBarData(
-            snapshot: snapshot.data!,
-            fieldNameForY: _namaKolom[1],
-          );
+          try {
+            chartData = transformSnapshotToBarData(dokumen: _documents);
 
-          final List<double> yValues = chartData.barGroups
-              .map(
-                (group) => group.barRods.first.toY,
-              ) // Ambil tinggi setiap bar
-              .toList();
+            yValues = chartData.barGroups
+                .map((group) => group.barRods.first.toY)
+                .toList();
+            minYValue = yValues.reduce(min);
+            maxYValue = yValues.reduce(max);
 
-          final double minYValue = yValues.reduce(min);
-          final double maxYValue = yValues.reduce(max);
-
-          double paddingY;
-          if (minYValue == maxYValue) {
-            // Jika semua nilai sama, beri bantalan absolut
-            paddingY = minYValue * 0.4; // 10% dari nilainya
-          } else {
-            // Jika nilai berbeda, beri bantalan berdasarkan rentangnya
-            final range = maxYValue - minYValue;
-            paddingY = range * 0.4; // 10% dari rentang
+            if (minYValue == maxYValue) {
+              paddingY = minYValue * 0.5;
+            } else {
+              final range = maxYValue - minYValue;
+              paddingY = range * 0.5;
+            }
+          } catch (e) {
+            _isDisplayChart = false;
           }
 
           return SingleChildScrollView(
@@ -510,7 +567,8 @@ class _DetailDataPage extends State<DetailDataPage> {
                             horizontalMargin:
                                 0, // Hapus margin bawaan di kiri dan kanan
                             columnSpacing: 16,
-
+                            sortColumnIndex: _sortColumnIndex,
+                            sortAscending: _isSortAscending,
                             // ======== KOLOM (HEADER) ========
                             columns: _namaKolom.map((String columnName) {
                               return DataColumn(
@@ -522,6 +580,7 @@ class _DetailDataPage extends State<DetailDataPage> {
                                     ),
                                   ),
                                 ),
+                                onSort: _onSort,
                               );
                             }).toList(),
 
@@ -540,9 +599,10 @@ class _DetailDataPage extends State<DetailDataPage> {
                             snapshot.data?.docs.map((dt) {
                               final data = dt.data() as Map<String, dynamic>;
                               return {
-                                'tahun': data['tahun'] ?? 0,
-                                _namaKolom[1]: data[_namaKolom[1]] ?? 'N/A',
-                              };
+                                    for (var col in _namaKolom)
+                                      {col: data[col]},
+                                  }
+                                  as Map<String, dynamic>;
                             }).toList() ??
                             [];
                         _downloadData(
@@ -564,64 +624,68 @@ class _DetailDataPage extends State<DetailDataPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Tabel Terkait',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    _isDisplayChart
+                        ? 'Tempilan Diagram'
+                        : 'Tidak ada Tampilan Chart',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  Card(
-                    child: Center(
-                      child: AspectRatio(
-                        aspectRatio: 1.5,
-                        child: BarChart(
-                          BarChartData(
-                            barTouchData: BarTouchData(
-                              enabled: true,
-                              touchTooltipData: BarTouchTooltipData(
-                                getTooltipColor: (group) => Colors.transparent,
-                                tooltipPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                            minY: (minYValue - paddingY).floorToDouble() < 0
-                                ? 0
-                                : (minYValue - paddingY).floorToDouble(),
-                            maxY: (maxYValue + paddingY).ceilToDouble(),
-                            alignment: BarChartAlignment.spaceEvenly,
-                            barGroups: chartData.barGroups,
-                            titlesData: FlTitlesData(
-                              show: true,
-                              bottomTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  reservedSize: 30,
-                                  getTitlesWidget:
-                                      (double value, TitleMeta meta) {
-                                        final String title = chartData
-                                            .bottomTitles[value.toInt()];
-                                        return SideTitleWidget(
-                                          meta: meta,
-                                          child: Text(title),
-                                        );
-                                      },
+                  if (_isDisplayChart)
+                    Card(
+                      child: Center(
+                        child: AspectRatio(
+                          aspectRatio: 1.5,
+                          child: BarChart(
+                            BarChartData(
+                              barTouchData: BarTouchData(
+                                enabled: true,
+                                touchTooltipData: BarTouchTooltipData(
+                                  getTooltipColor: (group) =>
+                                      Colors.transparent,
+                                  tooltipPadding: EdgeInsets.zero,
                                 ),
                               ),
-                              rightTitles: AxisTitles(
-                                sideTitles: SideTitles(showTitles: false),
+                              minY: (minYValue! - paddingY!).floorToDouble() < 0
+                                  ? 0
+                                  : (minYValue - paddingY).floorToDouble(),
+                              maxY: (maxYValue! + paddingY).ceilToDouble(),
+                              alignment: BarChartAlignment.spaceEvenly,
+                              barGroups: chartData!.barGroups,
+                              titlesData: FlTitlesData(
+                                show: true,
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 30,
+                                    getTitlesWidget:
+                                        (double value, TitleMeta meta) {
+                                          final String title = chartData!
+                                              .bottomTitles[value.toInt()];
+                                          return SideTitleWidget(
+                                            meta: meta,
+                                            child: Text(title),
+                                          );
+                                        },
+                                  ),
+                                ),
+                                rightTitles: AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                                leftTitles: AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                                topTitles: AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
                               ),
-                              leftTitles: AxisTitles(
-                                sideTitles: SideTitles(showTitles: false),
-                              ),
-                              topTitles: AxisTitles(
-                                sideTitles: SideTitles(showTitles: false),
-                              ),
+                              borderData: FlBorderData(show: true),
+                              gridData: const FlGridData(show: false),
                             ),
-                            borderData: FlBorderData(show: true),
-                            gridData: const FlGridData(show: false),
                           ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),

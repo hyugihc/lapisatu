@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'send_notif.dart';
 
 class PengaduanPage extends StatefulWidget {
   const PengaduanPage({super.key});
@@ -49,6 +50,10 @@ class _PengaduanPage extends State<PengaduanPage> {
       );
       await Future.delayed(const Duration(seconds: 2));
 
+      sendNotificationV1(
+        title: 'Notifikasi Pengaduan',
+        body: 'Pengaduan dari $name telah masuk',
+      );
       if (!context.mounted) return;
 
       Navigator.of(context).pop();

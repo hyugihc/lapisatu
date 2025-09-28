@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'send_notif.dart';
 
 class MagangPage extends StatefulWidget {
   const MagangPage({super.key});
@@ -43,6 +44,11 @@ class _MagangPage extends State<MagangPage> {
         message: 'Berhasil Dikirim!',
       );
       await Future.delayed(const Duration(seconds: 2));
+
+      sendNotificationV1(
+        title: 'Pengajuan Magang',
+        body: 'Pengajuan magang dari $name telah masuk',
+      );
 
       if (!context.mounted) return;
 
