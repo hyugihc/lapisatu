@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:typed_data';
 import 'package:excel/excel.dart';
 import 'package:file_saver/file_saver.dart';
+import 'package:intl/intl.dart';
 
 import 'dart:math';
 
@@ -215,90 +216,103 @@ class _DetailDataPage extends State<DetailDataPage> {
     required List<Map<String, dynamic>> dataExc,
     required String title,
   }) async {
-    // Tampilkan notifikasi awal
-    ScaffoldMessenger.of(context).showSnackBar(
+    // Simpan referensi ScaffoldMessenger sebelum Await untuk keamanan
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    // Lakukan validasi, jangan proses jika tidak ada data
+    if (dataExc.isEmpty) {
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text('Tidak ada data untuk diunduh.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    scaffoldMessenger.showSnackBar(
       SnackBar(
         content: const Text('Mempersiapkan file Excel...'),
         backgroundColor: Colors.blue[800],
       ),
     );
 
-    // Lakukan validasi, jangan proses jika tidak ada data
-    if (dataExc.isEmpty) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tidak ada data untuk diunduh.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
-
     try {
       // 1. BUAT OBJEK EXCEL DAN SHEET
       final excel = Excel.createExcel();
       final Sheet sheetObject = excel['Sheet1'];
 
-      // 2. TAMBAHKAN HEADER SECARA OTOMATIS
-      // Mengambil kunci (nama kolom) dari data pertama sebagai header
-      final List<String> headers = dataExc.first.keys.toList();
-      sheetObject.appendRow(
-        headers.map((header) => TextCellValue(header)).toList(),
-      );
+      // 2. TAMBAHKAN HEADER
+      if (dataExc.isNotEmpty) {
+        final List<String> headers = dataExc.first.keys.toList();
+        sheetObject.appendRow(
+          headers.map((header) => TextCellValue(header)).toList(),
+        );
+      }
 
       // 3. TAMBAHKAN DATA BARIS
       for (var dataRow in dataExc) {
-        // Mengambil nilai dari setiap baris data
         final List<dynamic> rowValues = dataRow.values.toList();
         sheetObject.appendRow(
           rowValues.map((value) => TextCellValue(value.toString())).toList(),
         );
       }
 
-      // 4. SIMPAN FILE KE PERANGKAT
-      final Uint8List? fileBytes = excel.save() as Uint8List?;
+      // 4. SIMPAN FILE KE MEMORI (SEBAGAI BYTES)
+      // excel.save() mengembalikan List<int>?, kita konversi ke Uint8List
+      final List<int>? fileBytesList = excel.save();
+      if (fileBytesList == null) {
+        throw Exception("Gagal membuat data file Excel.");
+      }
+      final Uint8List fileBytes = Uint8List.fromList(fileBytesList);
 
-      if (fileBytes != null) {
-        String timestamp = DateTime.now().toIso8601String().replaceAll(
-          ':',
-          '-',
-        );
-        String fileName = '$title$timestamp.xlsx';
+      // 5. MINTA PENGGUNA MEMILIH LOKASI & SIMPAN FILE (HANYA GUNAKAN FileSaver)
+      // Buat nama file yang lebih rapi
+      String timestamp = DateFormat(
+        'yyyy-MM-dd_HH-mm-ss',
+      ).format(DateTime.now());
+      String fileName = '$title-$timestamp.xlsx';
 
-        // Gunakan file_saver untuk memunculkan dialog simpan
-        String filePath = await FileSaver.instance.saveFile(
-          name: fileName,
-          bytes: fileBytes,
-          fileExtension: 'xlsx',
-          mimeType: MimeType.microsoftExcel,
-        );
-        NotificationService().init();
+      // saveAs akan membuka dialog "Save As" agar pengguna bisa memilih lokasi dan nama file
+      String? filePath = await FileSaver.instance.saveAs(
+        name: fileName,
+        bytes: fileBytes,
+        fileExtension: 'xlsx',
+        mimeType: MimeType.microsoftExcel,
+      );
+
+      if (filePath != null) {
+        // Panggil notifikasi setelah file berhasil disimpan
+        // Pastikan NotificationService().init() sudah dipanggil sekali saat app pertama kali jalan
         NotificationService().showNotification(
           0,
-          'Berhasil di Download',
+          'Berhasil diunduh',
           'File disimpan di $filePath',
         );
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Berhasil disimpan di $filePath'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      print('Error saat download Excel: $e');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+
+        scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: Text('Terjadi kesalahan: $e'),
-            backgroundColor: Colors.red,
+            content: Text('File berhasil disimpan di $filePath'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // Pengguna membatalkan dialog simpan
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Penyimpanan file dibatalkan.'),
+            backgroundColor: Colors.orange,
           ),
         );
       }
+    } catch (e) {
+      print('Error saat download Excel: $e');
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Terjadi kesalahan: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -309,10 +323,11 @@ class _DetailDataPage extends State<DetailDataPage> {
     String yCol = '';
 
     for (var col in _namaKolom) {
-      if (dataFirst[col].runtimeType == String) {
+      print('$col : ${dataFirst[col].runtimeType}');
+      if (dataFirst[col].runtimeType == String && xLabel.isEmpty) {
         xLabel = col;
-        break;
       } else if (dataFirst[col] is num) {
+        print(col);
         yCol = col;
       }
     }
@@ -324,7 +339,9 @@ class _DetailDataPage extends State<DetailDataPage> {
         }
       }
     }
-    return {'xlabel': xLabel, 'ylabel': yCol};
+    Map<String, String> xyLabel = {'xlabel': xLabel, 'ylabel': yCol};
+    print(xyLabel);
+    return xyLabel;
   }
 
   BarChartDataBundle transformSnapshotToBarData({
@@ -362,7 +379,7 @@ class _DetailDataPage extends State<DetailDataPage> {
             BarChartRodData(
               toY: yValue,
               color: Colors.lightBlue,
-              width: 16,
+              width: 25,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(4),
                 topRight: Radius.circular(4),
@@ -384,8 +401,8 @@ class _DetailDataPage extends State<DetailDataPage> {
     return BarChartDataBundle(barGroups: barGroups, bottomTitles: bottomTitles);
   }
 
-  void _onSort(int columnIndex, bool ascending) {
-    setState(() {
+  void _onSort(int columnIndex, bool ascending, {bool firstSort = false}) {
+    if (firstSort) {
       _sortColumnIndex = columnIndex;
       _isSortAscending = ascending;
 
@@ -408,7 +425,32 @@ class _DetailDataPage extends State<DetailDataPage> {
 
         return ascending ? result : -result;
       });
-    });
+    } else {
+      setState(() {
+        _sortColumnIndex = columnIndex;
+        _isSortAscending = ascending;
+
+        final String sortColumnName = _namaKolom[columnIndex];
+
+        _documents.sort((a, b) {
+          final dataA = a.data() as Map<String, dynamic>;
+          final dataB = b.data() as Map<String, dynamic>;
+
+          // Ambil value, perhatikan jika ada dokumen yang tidak punya kolom ini (akan bernilai null)
+          final valA = dataA[sortColumnName];
+          final valB = dataB[sortColumnName];
+
+          // Atur agar baris dengan data null selalu di bawah
+          if (valA == null) return 1;
+          if (valB == null) return -1;
+
+          // Gunakan compareTo untuk sorting
+          final int result = (valA.toString()).compareTo(valB.toString());
+
+          return ascending ? result : -result;
+        });
+      });
+    }
   }
 
   @override
@@ -470,10 +512,14 @@ class _DetailDataPage extends State<DetailDataPage> {
           }
           if (_documents.isEmpty) {
             _documents = snapshot.data!.docs;
+            Map<String, dynamic> dataFirst =
+                _documents.first.data() as Map<String, dynamic>;
+            _namaKolom = dataFirst.keys.toList();
+            _onSort(0, true, firstSort: true);
           }
-          Map<String, dynamic> dataColumns =
-              snapshot.data!.docs.first.data() as Map<String, dynamic>;
-          _namaKolom = dataColumns.keys.toList();
+          // Map<String, dynamic> dataColumns =
+          //     snapshot.data!.docs.first.data() as Map<String, dynamic>;
+          // _namaKolom = dataColumns.keys.toList();
 
           List<DataRow> dataRows = _documents.asMap().entries.map((entry) {
             int index = entry.key;
@@ -599,10 +645,8 @@ class _DetailDataPage extends State<DetailDataPage> {
                             snapshot.data?.docs.map((dt) {
                               final data = dt.data() as Map<String, dynamic>;
                               return {
-                                    for (var col in _namaKolom)
-                                      {col: data[col]},
-                                  }
-                                  as Map<String, dynamic>;
+                                for (var col in _namaKolom) col: data[col],
+                              };
                             }).toList() ??
                             [];
                         _downloadData(

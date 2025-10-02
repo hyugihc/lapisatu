@@ -93,7 +93,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
           'link': data['pub_link']?.toString() ?? '-',
         };
       }).toList();
-
+      print(publications);
       final List<Map<String, String>> statsData = homeSnapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
         return {
