@@ -74,7 +74,6 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
-    - .env
     - lib/assets/logo bps.png
     - lib/assets/backgroundd.jpg
     - lib/assets/permintaan data.png
