@@ -6,12 +6,12 @@ import 'package:excel/excel.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:intl/intl.dart';
 
-import 'dart:math';
-
 import 'package:lapis_satu/notif_try.dart';
+import 'package:lapis_satu/atoms/widgets_data.dart';
+import 'package:lapis_satu/atoms/enum_var.dart';
 
 class DataPage extends StatefulWidget {
-  final Map<String, String> mapData;
+  final Map<String, dynamic> mapData;
   const DataPage({super.key, required this.mapData});
 
   @override
@@ -21,6 +21,18 @@ class DataPage extends StatefulWidget {
 class _DataPageState extends State<DataPage> {
   late final List<String> _dataTitles;
 
+  // --- DIPERBARUI: Menggunakan Enum untuk Kategori ---
+  // Opsi dropdown dibuat dari enum + 'Semua Kategori'
+  final List<String> _categoryOptions = [
+    'Semua Kategori',
+    ...Category.values.map(
+      (c) => c.name,
+    ), // -> ['penduduk', 'ekonomi', 'pertanian']
+  ];
+  // State untuk menyimpan kategori yang dipilih (sebagai String)
+  String _selectedCategory = 'Semua Kategori';
+  // --------------------------------------------------
+
   String? _selectedTitle;
   String _searchKeyword = '';
   String? _link;
@@ -29,12 +41,13 @@ class _DataPageState extends State<DataPage> {
   void initState() {
     super.initState();
     _dataTitles = widget.mapData.keys.toList();
+    // Tidak perlu lagi membaca kategori dari mapData
   }
 
   void _showDetail(String title, BuildContext context) {
     setState(() {
       _selectedTitle = title;
-      _link = widget.mapData[title];
+      _link = widget.mapData[title]['link'];
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -56,11 +69,28 @@ class _DataPageState extends State<DataPage> {
 
   @override
   Widget build(BuildContext context) {
-    final filterTitle = _dataTitles
-        .where(
-          (title) => title.toLowerCase().contains(_searchKeyword.toLowerCase()),
-        )
-        .toList();
+    final filterTitle = _dataTitles.where((title) {
+      final bool matchesCategory;
+      if (_selectedCategory == 'Semua Kategori') {
+        matchesCategory = true;
+      } else {
+        int selectedIndex = Category.values.indexWhere(
+          (c) => c.name == _selectedCategory,
+        );
+        // Bandingkan dengan indeks integer yang ada di data
+        print(selectedIndex);
+        matchesCategory = (widget.mapData[title]['category'] == selectedIndex);
+      }
+
+      // Kondisi 2: Filter berdasarkan keyword pencarian
+      final matchesSearch = title.toLowerCase().contains(
+        _searchKeyword.toLowerCase(),
+      );
+
+      // Data akan tampil jika kedua kondisi terpenuhi
+      return matchesCategory && matchesSearch;
+    }).toList();
+    // -------------------------------------------------------------------------
 
     return Stack(
       children: [
@@ -72,7 +102,7 @@ class _DataPageState extends State<DataPage> {
               fit: StackFit.expand,
               children: [
                 Image.asset('lib/assets/backgroundd.jpg', fit: BoxFit.cover),
-                Container(color: Colors.black.withValues(alpha: 0.3)),
+                Container(color: Colors.black.withOpacity(0.3)),
               ],
             ),
             title: Row(
@@ -106,6 +136,41 @@ class _DataPageState extends State<DataPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      const SizedBox(height: 16.0),
+
+                      // --- DIPERBARUI: Dropdown kini menggunakan _categoryOptions ---
+                      DropdownButtonFormField<String>(
+                        value: _selectedCategory,
+                        decoration: InputDecoration(
+                          hintText: 'Pilih Kategori',
+                          prefixIcon: const Icon(Icons.category_outlined),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        // Membuat item dropdown dari list _categoryOptions
+                        items: _categoryOptions.map((String category) {
+                          // Tampilan teks dibuat lebih rapi (huruf pertama kapital)
+                          final displayText =
+                              category[0].toUpperCase() + category.substring(1);
+                          return DropdownMenuItem<String>(
+                            value: category,
+                            child: Text(displayText),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            setState(() {
+                              _selectedCategory = newValue;
+                            });
+                          }
+                        },
+                      ),
+
+                      // ----------------------------------------------------------
                       const SizedBox(height: 8.0),
                       TextField(
                         decoration: InputDecoration(
@@ -155,7 +220,7 @@ class _DataPageState extends State<DataPage> {
         borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             spreadRadius: 1,
             blurRadius: 5,
           ),
@@ -204,22 +269,19 @@ class DetailDataPage extends StatefulWidget {
 
 class _DetailDataPage extends State<DetailDataPage> {
   late Future<QuerySnapshot> _kontakFuture;
-  List<String> _namaKolom = [];
+  final List<String> _namaKolom = [];
+  final List<Map<String, dynamic>> _dataRow = [];
+  Map<String, dynamic> _atribut = {};
   List<DocumentSnapshot> _documents = [];
-  bool _isDisplayChart = true;
-
-  int? _sortColumnIndex;
-  bool _isSortAscending = true;
+  final bool _isDisplayChart = true;
 
   Future<void> _downloadData({
     required BuildContext context,
     required List<Map<String, dynamic>> dataExc,
     required String title,
   }) async {
-    // Simpan referensi ScaffoldMessenger sebelum Await untuk keamanan
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-    // Lakukan validasi, jangan proses jika tidak ada data
     if (dataExc.isEmpty) {
       scaffoldMessenger.showSnackBar(
         const SnackBar(
@@ -316,139 +378,30 @@ class _DetailDataPage extends State<DetailDataPage> {
     }
   }
 
-  Map<String, String> _findColumnFitName({
-    required Map<String, dynamic> dataFirst,
+  void sortAlgorithm({
+    required String sortColumnName,
+    required bool ascending,
   }) {
-    String xLabel = '';
-    String yCol = '';
+    _dataRow.sort((a, b) {
+      final valA = a[sortColumnName];
+      final valB = b[sortColumnName];
 
-    for (var col in _namaKolom) {
-      print('$col : ${dataFirst[col].runtimeType}');
-      if (dataFirst[col].runtimeType == String && xLabel.isEmpty) {
-        xLabel = col;
-      } else if (dataFirst[col] is num) {
-        print(col);
-        yCol = col;
-      }
-    }
-    if (xLabel.isEmpty) {
-      for (var kol in _namaKolom) {
-        if (kol.toLowerCase() == 'tahun' || kol.toLowerCase() == 'year') {
-          xLabel = kol;
-          break;
-        }
-      }
-    }
-    Map<String, String> xyLabel = {'xlabel': xLabel, 'ylabel': yCol};
-    print(xyLabel);
-    return xyLabel;
-  }
+      if (valA == null) return 1;
+      if (valB == null) return -1;
 
-  BarChartDataBundle transformSnapshotToBarData({
-    required List<DocumentSnapshot> dokumen,
-  }) {
-    if (dokumen.isEmpty) {
-      return BarChartDataBundle(barGroups: [], bottomTitles: []);
-    }
+      final int result = (valA.toString()).compareTo(valB.toString());
 
-    List<BarChartGroupData> barGroups = [];
-    List<String> bottomTitles = [];
-    final Map<String, dynamic> firstData =
-        dokumen.first.data() as Map<String, dynamic>;
-
-    final Map<String, String> xyLabel = _findColumnFitName(
-      dataFirst: firstData,
-    );
-    // Looping melalui setiap dokumen beserta indeksnya
-    dokumen.asMap().entries.forEach((entry) {
-      int index = entry.key;
-      var doc = entry.value;
-      final data = doc.data() as Map<String, dynamic>;
-
-      // 1. Sumbu X SELALU menggunakan indeks (0, 1, 2, ...)
-      final int xValue = index;
-      final double yValue =
-          (data[xyLabel['ylabel']] as num?)?.toDouble() ?? 0.0;
-
-      // Tambahkan data bar ke list barGroups
-      barGroups.add(
-        BarChartGroupData(
-          x: xValue,
-          showingTooltipIndicators: [0],
-          barRods: [
-            BarChartRodData(
-              toY: yValue,
-              color: Colors.lightBlue,
-              width: 25,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(4),
-                topRight: Radius.circular(4),
-              ),
-            ),
-          ],
-        ),
-      );
-
-      // 2. Tentukan LABEL untuk sumbu X
-      if (xyLabel['xlabel']!.isNotEmpty) {
-        bottomTitles.add(data[xyLabel['xlabel']].toString());
-      } else {
-        bottomTitles.add(index.toString());
-      }
+      return ascending ? result : -result;
     });
-
-    // Kembalikan "paket" yang berisi kedua list tersebut
-    return BarChartDataBundle(barGroups: barGroups, bottomTitles: bottomTitles);
   }
 
   void _onSort(int columnIndex, bool ascending, {bool firstSort = false}) {
+    final String sortColumnName = _namaKolom[columnIndex];
     if (firstSort) {
-      _sortColumnIndex = columnIndex;
-      _isSortAscending = ascending;
-
-      final String sortColumnName = _namaKolom[columnIndex];
-
-      _documents.sort((a, b) {
-        final dataA = a.data() as Map<String, dynamic>;
-        final dataB = b.data() as Map<String, dynamic>;
-
-        // Ambil value, perhatikan jika ada dokumen yang tidak punya kolom ini (akan bernilai null)
-        final valA = dataA[sortColumnName];
-        final valB = dataB[sortColumnName];
-
-        // Atur agar baris dengan data null selalu di bawah
-        if (valA == null) return 1;
-        if (valB == null) return -1;
-
-        // Gunakan compareTo untuk sorting
-        final int result = (valA.toString()).compareTo(valB.toString());
-
-        return ascending ? result : -result;
-      });
+      sortAlgorithm(sortColumnName: sortColumnName, ascending: ascending);
     } else {
       setState(() {
-        _sortColumnIndex = columnIndex;
-        _isSortAscending = ascending;
-
-        final String sortColumnName = _namaKolom[columnIndex];
-
-        _documents.sort((a, b) {
-          final dataA = a.data() as Map<String, dynamic>;
-          final dataB = b.data() as Map<String, dynamic>;
-
-          // Ambil value, perhatikan jika ada dokumen yang tidak punya kolom ini (akan bernilai null)
-          final valA = dataA[sortColumnName];
-          final valB = dataB[sortColumnName];
-
-          // Atur agar baris dengan data null selalu di bawah
-          if (valA == null) return 1;
-          if (valB == null) return -1;
-
-          // Gunakan compareTo untuk sorting
-          final int result = (valA.toString()).compareTo(valB.toString());
-
-          return ascending ? result : -result;
-        });
+        sortAlgorithm(sortColumnName: sortColumnName, ascending: ascending);
       });
     }
   }
@@ -492,77 +445,33 @@ class _DetailDataPage extends State<DetailDataPage> {
         ),
       ),
       body: FutureBuilder<QuerySnapshot>(
-        future: _kontakFuture, // Gunakan Future yang sudah dideklarasikan
+        future: _kontakFuture,
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          // 1. Menangani state Error
           if (snapshot.hasError) {
             return const Center(child: Text('Terjadi kesalahan!'));
           }
-
-          // 2. Menangani state Loading
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-
-          // 3. Jika tidak ada data
           if (snapshot.data!.docs.isEmpty) {
             return const Center(
               child: Text('Belum ada data / Atau Kemungkinan ada kesalahan!'),
             );
           }
+
           if (_documents.isEmpty) {
             _documents = snapshot.data!.docs;
-            Map<String, dynamic> dataFirst =
-                _documents.first.data() as Map<String, dynamic>;
-            _namaKolom = dataFirst.keys.toList();
-            _onSort(0, true, firstSort: true);
-          }
-          // Map<String, dynamic> dataColumns =
-          //     snapshot.data!.docs.first.data() as Map<String, dynamic>;
-          // _namaKolom = dataColumns.keys.toList();
-
-          List<DataRow> dataRows = _documents.asMap().entries.map((entry) {
-            int index = entry.key;
-            DocumentSnapshot document = entry.value;
-            Map<String, dynamic> data =
-                document.data()! as Map<String, dynamic>;
-            return DataRow(
-              color: WidgetStateProperty.resolveWith<Color?>((states) {
-                if (index.isEven) {
-                  return Colors.grey.withValues(alpha: .1);
-                }
-                return null;
-              }),
-              cells: _namaKolom.map((kolom) {
-                return DataCell(
-                  Center(child: Text((data[kolom] ?? '-').toString())),
-                );
-              }).toList(),
-            );
-          }).toList();
-          BarChartDataBundle? chartData;
-          List<double>? yValues;
-          double? minYValue;
-          double? maxYValue;
-          double? paddingY;
-
-          try {
-            chartData = transformSnapshotToBarData(dokumen: _documents);
-
-            yValues = chartData.barGroups
-                .map((group) => group.barRods.first.toY)
-                .toList();
-            minYValue = yValues.reduce(min);
-            maxYValue = yValues.reduce(max);
-
-            if (minYValue == maxYValue) {
-              paddingY = minYValue * 0.5;
-            } else {
-              final range = maxYValue - minYValue;
-              paddingY = range * 0.5;
+            for (var doc in _documents) {
+              if (doc.id == 'atribut') {
+                _atribut = doc.data() as Map<String, dynamic>;
+              } else {
+                _dataRow.add(doc.data() as Map<String, dynamic>);
+              }
             }
-          } catch (e) {
-            _isDisplayChart = false;
+            for (var col in _atribut['column']) {
+              _namaKolom.add(col.keys.first);
+            }
+            _onSort(0, true, firstSort: true);
           }
 
           return SingleChildScrollView(
@@ -587,54 +496,9 @@ class _DetailDataPage extends State<DetailDataPage> {
                     ),
                     // Mencegah konten di dalam Card keluar dari sudut yang melengkung
                     clipBehavior: Clip.antiAlias,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: DataTable(
-                            // ======== DEKORASI HEADER ========
-                            headingRowColor: WidgetStateProperty.all(
-                              Colors.blue[700],
-                            ), // Warna latar header
-                            headingTextStyle: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white, // Warna teks header
-                              fontSize: 16,
-                            ),
-
-                            // ======== GARIS BATAS & SPASI ========
-                            border: TableBorder.all(
-                              width: 1,
-                              color:
-                                  Colors.grey.shade300, // Warna garis batas sel
-                              borderRadius: BorderRadius.circular(
-                                11,
-                              ), // Sesuaikan dengan radius Card
-                            ),
-                            horizontalMargin:
-                                0, // Hapus margin bawaan di kiri dan kanan
-                            columnSpacing: 16,
-                            sortColumnIndex: _sortColumnIndex,
-                            sortAscending: _isSortAscending,
-                            // ======== KOLOM (HEADER) ========
-                            columns: _namaKolom.map((String columnName) {
-                              return DataColumn(
-                                label: Expanded(
-                                  child: Center(
-                                    child: Text(
-                                      columnName,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                                onSort: _onSort,
-                              );
-                            }).toList(),
-
-                            // ======== BARIS DATA ========
-                            rows: dataRows,
-                          ),
-                        ),
-                      ],
+                    child: DesignedTableData(
+                      atribute: _atribut,
+                      data: _dataRow,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -670,7 +534,7 @@ class _DetailDataPage extends State<DetailDataPage> {
                   const SizedBox(height: 24),
                   Text(
                     _isDisplayChart
-                        ? 'Tempilan Diagram'
+                        ? 'Tampilan Diagram'
                         : 'Tidak ada Tampilan Chart',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
@@ -680,52 +544,9 @@ class _DetailDataPage extends State<DetailDataPage> {
                       child: Center(
                         child: AspectRatio(
                           aspectRatio: 1.5,
-                          child: BarChart(
-                            BarChartData(
-                              barTouchData: BarTouchData(
-                                enabled: true,
-                                touchTooltipData: BarTouchTooltipData(
-                                  getTooltipColor: (group) =>
-                                      Colors.transparent,
-                                  tooltipPadding: EdgeInsets.zero,
-                                ),
-                              ),
-                              minY: (minYValue! - paddingY!).floorToDouble() < 0
-                                  ? 0
-                                  : (minYValue - paddingY).floorToDouble(),
-                              maxY: (maxYValue! + paddingY).ceilToDouble(),
-                              alignment: BarChartAlignment.spaceEvenly,
-                              barGroups: chartData!.barGroups,
-                              titlesData: FlTitlesData(
-                                show: true,
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 30,
-                                    getTitlesWidget:
-                                        (double value, TitleMeta meta) {
-                                          final String title = chartData!
-                                              .bottomTitles[value.toInt()];
-                                          return SideTitleWidget(
-                                            meta: meta,
-                                            child: Text(title),
-                                          );
-                                        },
-                                  ),
-                                ),
-                                rightTitles: AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                topTitles: AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                              ),
-                              borderData: FlBorderData(show: true),
-                              gridData: const FlGridData(show: false),
-                            ),
+                          child: DesignedBarChart(
+                            data: _dataRow,
+                            atribut: _atribut,
                           ),
                         ),
                       ),

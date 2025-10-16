@@ -3,13 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 // Ganti dengan Project ID Firebase Anda
 const String _projectId = 'lapissatu-bps-madiun-kab';
 
 // Ganti dengan path file kunci JSON Anda di assets
 const String _keyFilePath =
-    'lib/assets/credential/lapissatu-bps-madiun-kab-2ea88750eff3.json';
+    'lib/assets/credential/messagge_sender_credential.json';
 
 Future<void> sendNotificationV1({
   required String title,
@@ -17,19 +19,44 @@ Future<void> sendNotificationV1({
 }) async {
   print("Attempting to send notification...");
   String? targetToken;
-  // Ambil token FCM perangkat tujuan dari Firestore
   final DocumentSnapshot snapshot = await FirebaseFirestore.instance
       .collection('acc-admin')
-      .doc('creddentials_notification') // Ganti dengan ID dokumen yang sesuai
+      .doc('creddentials_notification')
       .get();
 
   if (snapshot.exists) {
-    targetToken = snapshot.get('uji');
+    await initializeDateFormatting('id_ID', null);
+
+    final String hariIni = DateFormat(
+      'EEEE',
+      'id_ID',
+    ).format(DateTime.now()).toLowerCase();
+    try {
+      String linkToken = (snapshot.get(hariIni) as String).trim();
+      final DocumentSnapshot tokenDoc = await FirebaseFirestore.instance
+          .collection('/acc-admin/creddentials_notification/fcms_list/')
+          .doc(linkToken) // <-- Kunci utamanya di sini
+          .get();
+
+      if (tokenDoc.exists) {
+        targetToken = tokenDoc.get('token') as String;
+        print('Token FCM berhasil didapat: $targetToken');
+      } else {
+        print(
+          'Error: Dokumen untuk petugas dengan ID "$linkToken" tidak ditemukan.',
+        );
+      }
+    } catch (e) {
+      print('Error: Field untuk hari "$hariIni" tidak ditemukan di dokumen.');
+    }
   } else {
     print("Document does not exist");
     return;
   }
 
+  if (targetToken == null) {
+    return;
+  }
   // 1. Dapatkan Kredensial Otentikasi OAuth 2.0
   final String keyFile = await rootBundle.loadString(_keyFilePath);
   final credentials = ServiceAccountCredentials.fromJson(jsonDecode(keyFile));

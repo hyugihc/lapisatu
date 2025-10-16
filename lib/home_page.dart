@@ -12,7 +12,7 @@ import 'infografis.dart';
 import 'notif_try.dart';
 
 class HomePage extends StatefulWidget {
-  final Map<String, String> mapData;
+  final Map<String, dynamic> mapData;
   final List<String> imgInfografis;
   final List<Map<String, String>> pubSample;
   final List<Map<String, String>> statsData;
@@ -95,7 +95,7 @@ class _HomePageState extends State<HomePage> {
 
 // homepage
 class HomeContent extends StatefulWidget {
-  final Map<String, String> mapData;
+  final Map<String, dynamic> mapData;
   final List<String> imgInfografis;
   final List<Map<String, String>> statsData;
   const HomeContent({
@@ -200,7 +200,7 @@ class _HomeContent extends State<HomeContent> {
 }
 
 class SearchBar extends StatelessWidget {
-  final Map<String, String> mapData;
+  final Map<String, dynamic> mapData;
   const SearchBar({super.key, required this.mapData});
 
   @override
@@ -239,7 +239,7 @@ class SearchBar extends StatelessWidget {
               builder: (context) => DetailDataPage(
                 title: selection,
                 onBack: () => Navigator.pop(context),
-                linkData: mapData[selection],
+                linkData: mapData[selection]['link'],
               ),
             ),
           );

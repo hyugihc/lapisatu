@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MenuPage extends StatelessWidget {
   const MenuPage({super.key});
@@ -11,7 +13,122 @@ class MenuPage extends StatelessWidget {
       'type': 'link',
       'content': 'https://ppid.bps.go.id/app/konten/3519/Profil-BPS.html',
     },
+    {
+      'title': 'Rating Aplikasi',
+      'icon': Icons.star_rate_outlined,
+      'type': 'dialog',
+    },
   ];
+
+void _showRatingDialog(BuildContext context) {
+  double ratingValue = 0;
+  final feedbackController = TextEditingController();
+  final nameController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('Beri Penilaian & Saran'),
+        content: SizedBox(
+          width: 300,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Nama (opsional)
+              StatefulBuilder(
+                builder: (context, setState) {
+                  return RatingBar.builder(
+                    initialRating: ratingValue,
+                    minRating: 1,
+                    direction: Axis.horizontal,
+                    allowHalfRating: true,
+                    itemCount: 5,
+                    itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    itemBuilder: (context, _) => const Icon(Icons.star, color: Colors.amber),
+                    onRatingUpdate: (rating) {
+                      setState(() {
+                        ratingValue = rating;
+                      });
+                    },
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              // Rating bintang
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  hintText: 'Nama (opsional)',
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                  prefixIcon: Icon(Icons.person, size: 20, color: Colors.grey[400]),
+                ),
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 12),
+              // Saran
+              SizedBox(
+                height: 80,
+                child: TextField(
+                  controller: feedbackController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Tulis saran atau masukan Anda di sini...',
+                  ),
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('NANTI SAJA'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          ElevatedButton(
+            child: const Text('KIRIM'),
+            onPressed: () async {
+              try {
+                await FirebaseFirestore.instance.collection('reviews-user').add({
+                  'nama': nameController.text.trim(),
+                  'rating': ratingValue,
+                  'saran': feedbackController.text.trim(),
+                  'timestamp': FieldValue.serverTimestamp(),
+                });
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Terima kasih atas penilaian dan saran Anda'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } catch (e) {
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Gagal Mengirim: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+  Future<void> _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw 'Could not launch $url';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,10 +153,7 @@ class MenuPage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Lainnya',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
+              const Text('Lainnya', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.pop(context),
@@ -53,7 +167,10 @@ class MenuPage extends StatelessWidget {
             itemCount: menuData.length,
             itemBuilder: (context, index) {
               final item = menuData[index];
-              return _buildMenuListTile(context: context, itemData: item);
+              return _buildMenuListTile(
+                context: context,
+                itemData: item,
+              );
             },
           ),
         ],
@@ -71,16 +188,22 @@ class MenuPage extends StatelessWidget {
       trailing: const Icon(Icons.chevron_right, color: Colors.grey),
       contentPadding: const EdgeInsets.symmetric(vertical: 4.0),
       onTap: () {
-        if (itemData['type'] != 'link') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MenuDetailPage(itemData: itemData),
-            ),
-          );
-        } else {
-          final Uri url = Uri.parse(itemData['content'] as String);
-          launchUrl(url, mode: LaunchMode.externalApplication);
+        switch (itemData['type']) {
+          case 'link':
+            _launchURL(itemData['content'] as String);
+            break;
+          case 'dialog':
+            Navigator.pop(context);
+            _showRatingDialog(context);
+            break;
+          default: // 'page' atau 'image'
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MenuDetailPage(itemData: itemData),
+              ),
+            );
         }
       },
     );
@@ -90,7 +213,10 @@ class MenuPage extends StatelessWidget {
 class MenuDetailPage extends StatelessWidget {
   final Map<String, dynamic> itemData;
 
-  const MenuDetailPage({super.key, required this.itemData});
+  const MenuDetailPage({
+    super.key,
+    required this.itemData,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -102,7 +228,7 @@ class MenuDetailPage extends StatelessWidget {
       body: Stack(
         children: [
           Image.asset(
-            'lib/assets/backgroundd.jpg',
+            'assets/images/backgroundd.jpg',
             fit: BoxFit.cover,
             height: double.infinity,
             width: double.infinity,
@@ -115,11 +241,7 @@ class MenuDetailPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: Colors.white,
-                        size: 30,
-                      ),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     const SizedBox(height: 24),
@@ -143,14 +265,12 @@ class MenuDetailPage extends StatelessWidget {
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 10,
-                          ),
+                          )
                         ],
                       ),
-                      child: contentType == 'link'
+                      child: contentType == 'image'
                           ? Column(
-                              children: (content as List<String>).map((
-                                imagePath,
-                              ) {
+                              children: (content as List<String>).map((imagePath) {
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: 16.0),
                                   child: ClipRRect(
