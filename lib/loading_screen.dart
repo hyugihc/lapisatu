@@ -147,7 +147,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
           children: [
             // Tampilkan logo dari folder assets
             Image.asset(
-              'lib/assets/logo bps.png', // Pastikan nama file sesuai
+              'lib/assets/full-icon-LS.png', // Pastikan nama file sesuai
               width: 150, // Sesuaikan ukuran logo
             ),
             const SizedBox(height: 14), // Beri jarak antara logo dan teks

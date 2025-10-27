@@ -6,10 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
-// Ganti dengan Project ID Firebase Anda
 const String _projectId = 'lapissatu-bps-madiun-kab';
-
-// Ganti dengan path file kunci JSON Anda di assets
 const String _keyFilePath =
     'lib/assets/credential/messagge_sender_credential.json';
 
@@ -35,7 +32,7 @@ Future<void> sendNotificationV1({
       String linkToken = (snapshot.get(hariIni) as String).trim();
       final DocumentSnapshot tokenDoc = await FirebaseFirestore.instance
           .collection('/acc-admin/creddentials_notification/fcms_list/')
-          .doc(linkToken) // <-- Kunci utamanya di sini
+          .doc(linkToken)
           .get();
 
       if (tokenDoc.exists) {
