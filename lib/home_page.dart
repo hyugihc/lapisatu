@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 
 import 'search_page.dart';
-import 'data_page.dart';
+import 'new_data_page_temp.dart';
+import 'detail_data_page.dart';
 import 'menu_page.dart';
 import 'permintaan_page.dart';
 import 'konsultasi_page.dart';
@@ -16,12 +17,14 @@ class HomePage extends StatefulWidget {
   final List<String> imgInfografis;
   final List<Map<String, String>> pubSample;
   final List<Map<String, String>> statsData;
+  final Map<String, dynamic> othersVar;
   const HomePage({
     super.key,
     required this.mapData,
     required this.imgInfografis,
     required this.pubSample,
     required this.statsData,
+    required this.othersVar,
   });
 
   @override
@@ -60,7 +63,10 @@ class _HomePageState extends State<HomePage> {
         statsData: widget.statsData,
       ),
       SearchPage(pubSample: widget.pubSample),
-      DataPage(mapData: widget.mapData),
+      DataPage(
+        mapData: widget.mapData,
+        displayedSC: widget.othersVar['displayedSC'],
+      ),
       const MenuPage(),
     ];
     NotificationService().init();
@@ -238,8 +244,9 @@ class SearchBar extends StatelessWidget {
             MaterialPageRoute(
               builder: (context) => DetailDataPage(
                 title: selection,
-                onBack: () => Navigator.pop(context),
+                // onBack: () => Navigator.pop(context),
                 linkData: mapData[selection]['link'],
+                mapData: mapData,
               ),
             ),
           );

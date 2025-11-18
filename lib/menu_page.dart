@@ -20,108 +20,124 @@ class MenuPage extends StatelessWidget {
     },
   ];
 
-void _showRatingDialog(BuildContext context) {
-  double ratingValue = 0;
-  final feedbackController = TextEditingController();
-  final nameController = TextEditingController();
+  void _showRatingDialog(BuildContext context) {
+    double ratingValue = 0;
+    final feedbackController = TextEditingController();
+    final nameController = TextEditingController();
 
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: const Text('Beri Penilaian & Saran'),
-        content: SizedBox(
-          width: 300,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Nama (opsional)
-              StatefulBuilder(
-                builder: (context, setState) {
-                  return RatingBar.builder(
-                    initialRating: ratingValue,
-                    minRating: 1,
-                    direction: Axis.horizontal,
-                    allowHalfRating: true,
-                    itemCount: 5,
-                    itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
-                    itemBuilder: (context, _) => const Icon(Icons.star, color: Colors.amber),
-                    onRatingUpdate: (rating) {
-                      setState(() {
-                        ratingValue = rating;
-                      });
-                    },
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              // Rating bintang
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  hintText: 'Nama (opsional)',
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                  prefixIcon: Icon(Icons.person, size: 20, color: Colors.grey[400]),
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Beri Penilaian & Saran'),
+          content: SizedBox(
+            width: 300,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Nama (opsional)
+                StatefulBuilder(
+                  builder: (context, setState) {
+                    return RatingBar.builder(
+                      initialRating: ratingValue,
+                      minRating: 1,
+                      direction: Axis.horizontal,
+                      allowHalfRating: true,
+                      itemCount: 5,
+                      itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      itemBuilder: (context, _) =>
+                          const Icon(Icons.star, color: Colors.amber),
+                      onRatingUpdate: (rating) {
+                        setState(() {
+                          ratingValue = rating;
+                        });
+                      },
+                    );
+                  },
                 ),
-                style: const TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 12),
-              // Saran
-              SizedBox(
-                height: 80,
-                child: TextField(
-                  controller: feedbackController,
-                  maxLines: 4,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Tulis saran atau masukan Anda di sini...',
+                const SizedBox(height: 12),
+                // Rating bintang
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    hintText: 'Nama (opsional)',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 12,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.person,
+                      size: 20,
+                      color: Colors.grey[400],
+                    ),
                   ),
                   style: const TextStyle(fontSize: 14),
                 ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            child: const Text('NANTI SAJA'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          ElevatedButton(
-            child: const Text('KIRIM'),
-            onPressed: () async {
-              try {
-                await FirebaseFirestore.instance.collection('reviews-user').add({
-                  'nama': nameController.text.trim(),
-                  'rating': ratingValue,
-                  'saran': feedbackController.text.trim(),
-                  'timestamp': FieldValue.serverTimestamp(),
-                });
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Terima kasih atas penilaian dan saran Anda'),
-                    backgroundColor: Colors.green,
+                const SizedBox(height: 12),
+                // Saran
+                SizedBox(
+                  height: 80,
+                  child: TextField(
+                    controller: feedbackController,
+                    maxLines: 4,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Tulis saran atau masukan Anda di sini...',
+                    ),
+                    style: const TextStyle(fontSize: 14),
                   ),
-                );
-              } catch (e) {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Gagal Mengirim: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
+                ),
+              ],
+            ),
           ),
-        ],
-      );
-    },
-  );
-}
+          actions: [
+            TextButton(
+              child: const Text('NANTI SAJA'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            ElevatedButton(
+              child: const Text('KIRIM'),
+              onPressed: () async {
+                try {
+                  await FirebaseFirestore.instance
+                      .collection('reviews-user')
+                      .add({
+                        'nama': nameController.text.trim(),
+                        'rating': ratingValue,
+                        'saran': feedbackController.text.trim(),
+                        'timestamp': FieldValue.serverTimestamp(),
+                      });
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Terima kasih atas penilaian dan saran Anda',
+                        ),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Gagal Mengirim: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Future<void> _launchURL(String url) async {
     final Uri uri = Uri.parse(url);
@@ -153,7 +169,10 @@ void _showRatingDialog(BuildContext context) {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Lainnya', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const Text(
+                'Lainnya',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
               IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.pop(context),
@@ -167,10 +186,7 @@ void _showRatingDialog(BuildContext context) {
             itemCount: menuData.length,
             itemBuilder: (context, index) {
               final item = menuData[index];
-              return _buildMenuListTile(
-                context: context,
-                itemData: item,
-              );
+              return _buildMenuListTile(context: context, itemData: item);
             },
           ),
         ],
@@ -213,10 +229,7 @@ void _showRatingDialog(BuildContext context) {
 class MenuDetailPage extends StatelessWidget {
   final Map<String, dynamic> itemData;
 
-  const MenuDetailPage({
-    super.key,
-    required this.itemData,
-  });
+  const MenuDetailPage({super.key, required this.itemData});
 
   @override
   Widget build(BuildContext context) {
@@ -241,7 +254,11 @@ class MenuDetailPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
+                      icon: const Icon(
+                        Icons.arrow_back,
+                        color: Colors.white,
+                        size: 30,
+                      ),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     const SizedBox(height: 24),
@@ -265,12 +282,14 @@ class MenuDetailPage extends StatelessWidget {
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 10,
-                          )
+                          ),
                         ],
                       ),
                       child: contentType == 'image'
                           ? Column(
-                              children: (content as List<String>).map((imagePath) {
+                              children: (content as List<String>).map((
+                                imagePath,
+                              ) {
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: 16.0),
                                   child: ClipRRect(

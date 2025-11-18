@@ -148,7 +148,7 @@ class _PermintaanPage extends State<PermintaanPage> {
         _localFilePath = newFile.path;
         _pickedFileName = pickedFile.name;
       });
-      print('File berhasil disimpan di: $_localFilePath');
+      // print('File berhasil disimpan di: $_localFilePath');
 
       // DI SINI ANDA BISA MEMANGGIL FUNGSI UNGGAH KE CLOUD STORAGE
       // await _uploadToCloud(newFile);

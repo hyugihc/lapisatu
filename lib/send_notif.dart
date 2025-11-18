@@ -14,7 +14,7 @@ Future<void> sendNotificationV1({
   required String title,
   required String body,
 }) async {
-  print("Attempting to send notification...");
+  // print("Attempting to send notification...");
   String? targetToken;
   final DocumentSnapshot snapshot = await FirebaseFirestore.instance
       .collection('acc-admin')

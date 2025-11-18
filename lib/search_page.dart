@@ -135,7 +135,7 @@ class _SearchPageState extends State<SearchPage> {
               ),
             ),
           );
-          print('${itemData['title']} diklik!');
+          // print('${itemData['title']} diklik!');
         },
         borderRadius: BorderRadius.circular(12.0),
         child: Padding(

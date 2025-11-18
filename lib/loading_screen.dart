@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:lapis_satu/atoms/func_utilities.dart';
 
 import 'dart:async';
 
@@ -44,14 +45,29 @@ class _LoadingScreenState extends State<LoadingScreen> {
       final List<String> listImage = igsnapshot.docs.map((doc) {
         return doc['image']?.toString() ?? '';
       }).toList();
-
       final fetchedMap = {
         for (var doc in snapshot.docs)
-          (doc['judul'] as String): {
-            'link': doc['link'] as String,
-            'category': doc['category'] as int,
+          (doc.data()['judul'] as String): {
+            'id': doc.id,
+            'link': doc.data()['link'] as String,
+            'category': doc.data()['category'] as int,
+            'subcategory': doc.data()['subcategory'] ?? 0,
+            // 'root': (doc.data()['root'] ?? false) as bool,
           },
       };
+
+      final Set<String> displayedSC = {};
+      for (var dt in fetchedMap.entries) {
+        try {
+          final String nameSC = getNameSC(
+            subCatIdx: dt.value['subcategory'],
+            category: id2Cat(catIdx: dt.value['category']),
+          )!;
+          displayedSC.add(nameSC);
+        } catch (e) {
+          print(e);
+        }
+      }
 
       final List<Map<String, String>> publications = pubsnapshot.docs.map((
         doc,
@@ -96,6 +112,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
               imgInfografis: listImage,
               pubSample: publications,
               statsData: statsData,
+              othersVar: {'displayedSC': displayedSC},
             ),
           ),
         );
