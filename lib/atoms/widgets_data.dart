@@ -43,6 +43,7 @@ class _DesignedTableData extends State<DesignedTableData> {
       widget.atribute['column'],
     );
     _totalColumns = _columnStructure.length - 1;
+    _onSort(0, false, firstSort: true);
     // print(widget.data);
   }
 
@@ -203,7 +204,6 @@ class _DesignedTableData extends State<DesignedTableData> {
 
   @override
   Widget build(BuildContext context) {
-    _onSort(0, false, firstSort: true);
     return Padding(
       padding: const EdgeInsets.all(3),
       child: Container(

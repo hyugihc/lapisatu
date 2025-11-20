@@ -59,17 +59,17 @@ Future<void> sendNotificationV1({
     );
 
     final result = await callable.call(<String, dynamic>{
-      // 'token': targetToken,
+      'token': targetToken,
       'title': title,
       'body': body,
     });
 
     print('Cloud Function response: ${result.data}');
   } on FirebaseFunctionsException catch (e) {
-    // print('Firebase Function Call Failed:');
+    print('Firebase Function Call Failed:');
     print('Code: ${e.code}');
-    // print('Message: ${e.message}');
-    // print('Details: ${e.details}');
+    print('Message: ${e.message}');
+    print('Details: ${e.details}');
   } catch (e) {
     // print('An error occurred while calling the function: $e');
   }

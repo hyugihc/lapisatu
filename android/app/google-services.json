@@ -7,9 +7,28 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:938584470555:android:2b0c3b4b3449f0196b34be",
+        "android_client_info": {
+          "package_name": "com.bps_kab_madiun.lapis_satu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAfCE4jIu0dNpNKqKHQg_x-f4cJZd6zzpg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:938584470555:android:c320dd546819eb946b34be",
         "android_client_info": {
-          "package_name": "com.example.lapis_satu"
+          "package_name": "com.example.admin_lapissatu"
         }
       },
       "oauth_client": [],

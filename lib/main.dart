@@ -7,7 +7,6 @@ import 'loading_screen.dart';
 import 'notif_try.dart';
 
 void main() async {
-  // 1. Ensure that the Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await NotificationService().init();
