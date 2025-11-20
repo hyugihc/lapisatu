@@ -94,7 +94,6 @@ class _DataPageState extends State<DataPage> {
               ],
             ),
             title: Row(
-              // ... (Title AppBar Anda tidak berubah)
               children: [
                 Image.asset('lib/assets/logo bps.png', height: 40),
                 const SizedBox(width: 8),
@@ -124,7 +123,7 @@ class _DataPageState extends State<DataPage> {
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
-                      ), // Teks 'Cari Data'
+                      ),
                       const SizedBox(height: 16.0),
 
                       // TextField (tidak berubah)
@@ -138,7 +137,7 @@ class _DataPageState extends State<DataPage> {
                             borderRadius: BorderRadius.circular(12.0),
                             borderSide: BorderSide.none,
                           ),
-                        ), // Dekorasi TextField Anda
+                        ),
                         onChanged: (value) {
                           setState(() {
                             _searchKeyword = value;
@@ -147,7 +146,6 @@ class _DataPageState extends State<DataPage> {
                       ),
                       const SizedBox(height: 8.0),
 
-                      // Dropdown (tidak berubah)
                       DropdownButtonFormField<String>(
                         initialValue: _selectedCategory,
                         decoration: InputDecoration(
@@ -238,7 +236,6 @@ class _DataPageState extends State<DataPage> {
     );
   }
 
-  // Widget builder BARU (secara visual sama, tapi beda fungsi)
   Widget _buildSubCategoryItem({required String title}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12.0),

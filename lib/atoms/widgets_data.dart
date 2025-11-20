@@ -9,6 +9,7 @@ import 'dart:math';
 import 'package:lapis_satu/atoms/enum_var.dart';
 import 'package:lapis_satu/atoms/func_utilities.dart';
 
+// ========== DATA TEMPLATE ==========
 class DesignedTableData extends StatefulWidget {
   final Map<String, dynamic> atribute;
   final List<Map<String, dynamic>> data;
@@ -202,6 +203,7 @@ class _DesignedTableData extends State<DesignedTableData> {
 
   @override
   Widget build(BuildContext context) {
+    _onSort(0, false, firstSort: true);
     return Padding(
       padding: const EdgeInsets.all(3),
       child: Container(
@@ -505,6 +507,25 @@ class _DesignedBarChart extends State<DesignedBarChart> {
                   aspectRatio: 1.5,
                   child: BarChart(
                     BarChartData(
+                      gridData: FlGridData(
+                        show: true,
+                        getDrawingHorizontalLine: (value) {
+                          // Cek apakah nilai Y adalah 0
+                          if (value == 0) {
+                            return FlLine(
+                              // Tampilkan garis yang tebal dan berwarna merah
+                              color: Colors.red,
+                              strokeWidth: 2,
+                            );
+                          }
+
+                          // Untuk nilai Y lainnya, gunakan garis standar (atau sembunyikan)
+                          return FlLine(
+                            color: Colors.grey.withValues(alpha: .3),
+                            strokeWidth: 0.5,
+                          );
+                        },
+                      ),
                       barTouchData: BarTouchData(
                         enabled: true,
                         touchTooltipData: BarTouchTooltipData(
@@ -543,7 +564,7 @@ class _DesignedBarChart extends State<DesignedBarChart> {
                         ),
                       ),
                       borderData: FlBorderData(show: false),
-                      gridData: const FlGridData(show: false),
+                      // gridData: const FlGridData(show: false),
                     ),
                   ),
                 ),
@@ -553,7 +574,7 @@ class _DesignedBarChart extends State<DesignedBarChart> {
         ],
       );
     } catch (e) {
-      print(e);
+      // print(e);
       return const SizedBox.shrink();
     }
   }
@@ -573,8 +594,6 @@ class DesignedLineChart extends StatefulWidget {
   @override
   State<DesignedLineChart> createState() => _DesignedLineChartState();
 }
-
-// --- KODE STATE YANG DIKONVERSI ---
 
 class _DesignedLineChartState extends State<DesignedLineChart> {
   final Map<String, dynamic> _atributeChart = {};
@@ -958,9 +977,9 @@ class _DesignedLineChartState extends State<DesignedLineChart> {
           ),
         ],
       );
-    } catch (e, s) {
-      print('Error building chart: $e');
-      print(s);
+    } catch (e) {
+      // print('Error building chart: $e');
+      // print(s);
       return const SizedBox.shrink(
         child: Text("Gagal memuat chart"),
       ); // Tampilkan widget kosong jika error

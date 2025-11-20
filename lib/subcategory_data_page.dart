@@ -64,14 +64,14 @@ class _SubCategoryDataPageState extends State<SubCategoryDataPage> {
 
       return matchesSubCategory && matchesSearch;
     }).toList();
-    // --- BATAS LOGIKA FILTER ---
 
     return Scaffold(
       backgroundColor: Colors.grey[200],
-      // AppBar sederhana untuk halaman ini
-      appBar: AppBar(
-        title: Text(widget.subcategoryName),
-        // Anda bisa tambahkan background kustom di sini jika mau
+      appBar: generateAppBar(
+        title: widget.subcategoryName,
+        onBack: () {
+          Navigator.pop(context);
+        },
       ),
       body: SingleChildScrollView(
         child: Column(

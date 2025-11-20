@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:excel/excel.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:intl/intl.dart';
+import 'package:lapis_satu/atoms/func_utilities.dart';
 
 import 'package:lapis_satu/notif_try.dart';
 import 'package:lapis_satu/atoms/widgets_data.dart';
@@ -437,7 +438,7 @@ class _DetailDataPage extends State<DetailDataPage> {
         );
       }
     } catch (e) {
-      print('Error saat download Excel: $e');
+      // print('Error saat download Excel: $e');
       scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text('Terjadi kesalahan: $e'),
@@ -504,31 +505,11 @@ class _DetailDataPage extends State<DetailDataPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        flexibleSpace: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset('lib/assets/backgroundd.jpg', fit: BoxFit.cover),
-            Container(color: Colors.black.withValues(alpha: 0.3)),
-          ],
-        ),
-        title: const Text(
-          'Tabel Data',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            // widget.onBack;
-            Navigator.of(context).pop();
-          },
-        ),
+      appBar: generateAppBar(
+        title: widget.title,
+        onBack: () {
+          Navigator.pop(context);
+        },
         actions: [
           IconButton(
             icon: const Icon(Icons.download, color: Colors.white),

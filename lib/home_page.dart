@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
@@ -18,6 +19,7 @@ class HomePage extends StatefulWidget {
   final List<Map<String, String>> pubSample;
   final List<Map<String, String>> statsData;
   final Map<String, dynamic> othersVar;
+  final String imgJadwal;
   const HomePage({
     super.key,
     required this.mapData,
@@ -25,6 +27,7 @@ class HomePage extends StatefulWidget {
     required this.pubSample,
     required this.statsData,
     required this.othersVar,
+    required this.imgJadwal,
   });
 
   @override
@@ -61,6 +64,7 @@ class _HomePageState extends State<HomePage> {
         mapData: widget.mapData,
         imgInfografis: widget.imgInfografis,
         statsData: widget.statsData,
+        jadwalImgPath: widget.imgJadwal,
       ),
       SearchPage(pubSample: widget.pubSample),
       DataPage(
@@ -104,11 +108,13 @@ class HomeContent extends StatefulWidget {
   final Map<String, dynamic> mapData;
   final List<String> imgInfografis;
   final List<Map<String, String>> statsData;
+  final String jadwalImgPath;
   const HomeContent({
     super.key,
     required this.mapData,
     required this.imgInfografis,
     required this.statsData,
+    required this.jadwalImgPath,
   });
 
   @override
@@ -192,7 +198,13 @@ class _HomeContent extends State<HomeContent> {
                   child: Card(
                     child: Padding(
                       padding: EdgeInsetsGeometry.all(16),
-                      child: Image.asset('lib/assets/Jadwal Petugas PST.png'),
+                      child: CachedNetworkImage(
+                        imageUrl: widget.jadwalImgPath,
+                        placeholder: (context, url) =>
+                            const Center(child: CircularProgressIndicator()),
+                        errorWidget: (context, url, error) =>
+                            const Icon(Icons.error),
+                      ),
                     ),
                   ),
                 ),

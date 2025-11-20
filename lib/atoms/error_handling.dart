@@ -49,11 +49,11 @@ class FirestoreErrorHandler {
           return 'Data yang Anda kirim tidak valid.';
 
         default:
-          print('[ERROR] : ${error.message ?? error.code}');
+          // print('[ERROR] : ${error.message ?? error.code}');
           return 'Terjadi Kesalahan Pada DataBase';
       }
     } else {
-      print(error);
+      // print(error);
       return 'Terjadi Kesalahan Pada DataBase';
     }
   }

@@ -42,6 +42,11 @@ class _LoadingScreenState extends State<LoadingScreen> {
           .collection('home-display')
           .get();
 
+      final DocumentSnapshot jadwalSnapshot = await FirebaseFirestore.instance
+          .collection('acc-admin/')
+          .doc('jadwal-pst')
+          .get();
+
       final List<String> listImage = igsnapshot.docs.map((doc) {
         return doc['image']?.toString() ?? '';
       }).toList();
@@ -65,7 +70,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
           )!;
           displayedSC.add(nameSC);
         } catch (e) {
-          print(e);
+          // print(e);
         }
       }
 
@@ -102,6 +107,9 @@ class _LoadingScreenState extends State<LoadingScreen> {
         };
       }).toList();
 
+      String jadwalPath =
+          (jadwalSnapshot.data() as Map<String, dynamic>)['img_path'];
+
       if (mounted) {
         // 2. Kirim data ke HomePage melalui constructor
         Navigator.pushReplacement(
@@ -113,12 +121,13 @@ class _LoadingScreenState extends State<LoadingScreen> {
               pubSample: publications,
               statsData: statsData,
               othersVar: {'displayedSC': displayedSC},
+              imgJadwal: jadwalPath,
             ),
           ),
         );
       }
     } catch (e) {
-      print("Error fetching data: $e");
+      // print("Error fetching data: $e");
       // Pastikan widget masih ada di tree sebelum menampilkan dialog
       if (!mounted) return;
 
