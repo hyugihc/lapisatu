@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:lapis_satu/atoms/func_utilities.dart';
 import 'send_notif.dart';
 
 class MagangPage extends StatefulWidget {
@@ -17,52 +18,73 @@ class _MagangPage extends State<MagangPage> {
   final TextEditingController _req = TextEditingController();
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
+  final _formKey = GlobalKey<FormState>();
+
+  bool _isLoading = false;
+
   Future<void> _saveMagang({
     required BuildContext context,
-    required String name,
-    required String nik,
-    required String noWa,
-    required String email,
-    required String req,
+    // required String name,
+    // required String nik,
+    // required String noWa,
+    // required String email,
+    // required String req,
   }) async {
-    try {
-      await firestore.collection('intern-req').add({
-        'name': name,
-        'identity_num': nik,
-        'phone_num': noWa,
-        'email': email,
-        'keperluan': req,
-        'timestamp': FieldValue.serverTimestamp(),
-        'title': 'Pengajuan Magang',
-        'status': 'pending',
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
       });
-      if (!context.mounted) return;
-      _showStatusDialog(
-        context,
-        icon: Icons.check_circle_outline,
-        color: Colors.green,
-        message: 'Berhasil Dikirim!',
-      );
-      await Future.delayed(const Duration(seconds: 2));
+      final String name = _nama.text;
+      final String nik = _nik.text;
+      final String noWa = _noWa.text;
+      final String email = _email.text;
+      final String req = _req.text;
 
-      sendNotificationV1(
-        title: 'Pengajuan Magang',
-        body: 'Pengajuan magang dari $name telah masuk',
-      );
+      try {
+        await firestore.collection('intern-req').add({
+          'name': name,
+          'identity_num': nik,
+          'phone_num': noWa,
+          'email': email,
+          'keperluan': req,
+          'timestamp': FieldValue.serverTimestamp(),
+          'title': 'Pengajuan Magang',
+          'status': 'pending',
+        });
+        if (!context.mounted) return;
+        _showStatusDialog(
+          context,
+          icon: Icons.check_circle_outline,
+          color: Colors.green,
+          message: 'Berhasil Dikirim!',
+        );
+        await Future.delayed(const Duration(seconds: 2));
 
-      if (!context.mounted) return;
+        sendNotificationV1(
+          title: 'Pengajuan Magang',
+          body: 'Pengajuan magang dari $name telah masuk',
+        );
 
-      Navigator.of(context).pop();
-    } catch (e) {
-      print('Error $e');
-      if (!context.mounted) return;
+        setState(() {
+          _isLoading = false;
+        });
+        if (!context.mounted) return;
 
-      _showStatusDialog(
-        context,
-        icon: Icons.highlight_off,
-        color: Colors.red,
-        message: 'Gagal Terkirim\nSilakan Coba Lagi',
-      );
+        Navigator.of(context).pop();
+      } catch (e) {
+        // print('Error $e');
+        if (!context.mounted) return;
+
+        _showStatusDialog(
+          context,
+          icon: Icons.highlight_off,
+          color: Colors.red,
+          message: 'Gagal Terkirim\nSilakan Coba Lagi',
+        );
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -180,93 +202,132 @@ class _MagangPage extends State<MagangPage> {
                       ),
                     ],
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'MEKANISME PENGAJUAN',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildMechanismItem(
-                        number: '1.',
-                        text:
-                            'Syarat pengajuan magang adalah Mahasiswa/siswa yang berstatus masih AKTIF belajar di kampus atau sekolah.',
-                      ),
-                      const SizedBox(height: 8),
-                      _buildMechanismItem(
-                        number: '2.',
-                        text:
-                            'Mahasiswa/siswa harus mengirimkan surat pengantar resmi dan proposal dari kampus atau sekolah yang ditujukkan kepada Kepala BPS Kabupaten Madiun. Surat dan proposal dapat dikirimkan via Kantor POS atau datang langsung ke Kantor BPS Kabupaten Madiun. Jl Marsma TNI Anumerta R.Iswahjudi No.30, Jiwan Utara, Kec. Jiwan Kabupaten Madiun, Jawa Timur, 63164',
-                      ),
-                      const SizedBox(height: 8),
-                      _buildMechanismItem(
-                        number: '3.',
-                        text:
-                            'Setelah surat masuk, BPS Kabupaten Madiun akan memproses dengan memperhatikan ketersediaan kuota magang.',
-                      ),
-                      const SizedBox(height: 8),
-                      _buildMechanismItem(
-                        number: '4.',
-                        text:
-                            'Informasi penerimaan akan disampaikan melalui surat balasan resmi yang dikirimkan ke alamat kampus atau sekolah.',
-                      ),
-                      const SizedBox(height: 24),
-
-                      //isi form
-                      const Divider(),
-                      const SizedBox(height: 24),
-                      const Text(
-                        'FORMULIR PENGAJUAN',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(label: 'Nama Lengkap', varText: _nama),
-                      _buildTextField(
-                        label: 'NIK/Nomor Kartu Pelajar',
-                        varText: _nik,
-                      ),
-                      _buildTextField(label: 'No WA Aktif', varText: _noWa),
-                      _buildTextField(label: 'Email Aktif', varText: _email),
-                      _buildTextField(label: 'Keperluan', varText: _req),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              _saveMagang(
-                                context: context,
-                                name: _nama.text,
-                                nik: _nik.text,
-                                noWa: _noWa.text,
-                                email: _email.text,
-                                req: _req.text,
-                              );
-                              _nama.clear();
-                              _nik.clear();
-                              _noWa.clear();
-                              _email.clear();
-                              _req.clear();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue[800],
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 30,
-                              ),
-                            ),
-                            child: const Text('Kirim'),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'MEKANISME PENGAJUAN',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                        const SizedBox(height: 16),
+                        _buildMechanismItem(
+                          number: '1.',
+                          text:
+                              'Syarat pengajuan magang adalah Mahasiswa/siswa yang berstatus masih AKTIF belajar di kampus atau sekolah.',
+                        ),
+                        const SizedBox(height: 8),
+                        _buildMechanismItem(
+                          number: '2.',
+                          text:
+                              'Mahasiswa/siswa harus mengirimkan surat pengantar resmi dan proposal dari kampus atau sekolah yang ditujukkan kepada Kepala BPS Kabupaten Madiun. Surat dan proposal dapat dikirimkan via Kantor POS atau datang langsung ke Kantor BPS Kabupaten Madiun. Jl Marsma TNI Anumerta R.Iswahjudi No.30, Jiwan Utara, Kec. Jiwan Kabupaten Madiun, Jawa Timur, 63164',
+                        ),
+                        const SizedBox(height: 8),
+                        _buildMechanismItem(
+                          number: '3.',
+                          text:
+                              'Setelah surat masuk, BPS Kabupaten Madiun akan memproses dengan memperhatikan ketersediaan kuota magang.',
+                        ),
+                        const SizedBox(height: 8),
+                        _buildMechanismItem(
+                          number: '4.',
+                          text:
+                              'Informasi penerimaan akan disampaikan melalui surat balasan resmi yang dikirimkan ke alamat kampus atau sekolah.',
+                        ),
+                        const SizedBox(height: 24),
+
+                        //isi form
+                        const Divider(),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'FORMULIR PENGAJUAN',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        generateInputField(
+                          label: 'Nama Lengkap',
+                          varText: _nama,
+                          validator: ValidatorInput.defaultRequired,
+                        ),
+                        generateInputField(
+                          label: 'NIK/NIP/NIM/NISN',
+                          varText: _nik,
+                          validator: ValidatorInput.defaultRequired,
+                        ),
+                        generateInputField(
+                          label: 'No. WA Aktif',
+                          varText: _noWa,
+                          validator: ValidatorInput.validatePhoneNumber,
+                        ),
+                        generateInputField(
+                          label: 'Email Aktif',
+                          varText: _email,
+                          validator: ValidatorInput.validateEmail,
+                        ),
+                        generateInputField(
+                          label: 'Jenis Magang',
+                          varText: _req,
+                          validator: ValidatorInput.defaultRequired,
+                        ),
+                        // _buildTextField(label: 'Nama Lengkap', varText: _nama),
+                        // _buildTextField(
+                        //   label: 'NIK/Nomor Kartu Pelajar',
+                        //   varText: _nik,
+                        // ),
+                        // _buildTextField(label: 'No WA Aktif', varText: _noWa),
+                        // _buildTextField(label: 'Email Aktif', varText: _email),
+                        // _buildTextField(label: 'Keperluan', varText: _req),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            ElevatedButton(
+                              onPressed: _isLoading
+                                  ? null
+                                  : () {
+                                      _saveMagang(
+                                        context: context,
+                                        // name: _nama.text,
+                                        // nik: _nik.text,
+                                        // noWa: _noWa.text,
+                                        // email: _email.text,
+                                        // req: _req.text,
+                                      );
+                                      // _nama.clear();
+                                      // _nik.clear();
+                                      // _noWa.clear();
+                                      // _email.clear();
+                                      // _req.clear();
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue[800],
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 30,
+                                ),
+                              ),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 3,
+                                      ),
+                                    )
+                                  : const Text('Kirim'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -289,33 +350,33 @@ class _MagangPage extends State<MagangPage> {
     );
   }
 
-  Widget _buildTextField({
-    required String label,
-    required TextEditingController varText,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8.0),
-          TextField(
-            controller: varText,
-            decoration: InputDecoration(
-              hintText: 'Jawaban anda',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12.0,
-                vertical: 10.0,
-              ),
-              isDense: true,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildTextField({
+  //   required String label,
+  //   required TextEditingController varText,
+  // }) {
+  //   return Padding(
+  //     padding: const EdgeInsets.only(bottom: 16.0),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+  //         const SizedBox(height: 8.0),
+  //         TextField(
+  //           controller: varText,
+  //           decoration: InputDecoration(
+  //             hintText: 'Jawaban anda',
+  //             border: OutlineInputBorder(
+  //               borderRadius: BorderRadius.circular(8.0),
+  //             ),
+  //             contentPadding: const EdgeInsets.symmetric(
+  //               horizontal: 12.0,
+  //               vertical: 10.0,
+  //             ),
+  //             isDense: true,
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 }

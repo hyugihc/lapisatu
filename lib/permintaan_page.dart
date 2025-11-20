@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart'; // 1. Tambahkan Import ini
 import 'package:file_picker/file_picker.dart';
+import 'package:lapis_satu/atoms/func_utilities.dart';
 import 'package:path_provider/path_provider.dart';
-import 'send_notif.dart';
+import 'send_notif.dart'; // Pastikan file ini ada
 
 class PermintaanPage extends StatefulWidget {
   const PermintaanPage({super.key});
@@ -21,56 +23,91 @@ class _PermintaanPage extends State<PermintaanPage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   bool _status = false;
+  bool _isLoading = false;
   String? _localFilePath;
   String? _pickedFileName;
 
+  final _formKey = GlobalKey<FormState>();
+
+  // Fungsi dimodifikasi untuk handle Upload Storage
   Future<void> _sendToDB({
     required BuildContext context,
-    required String nama,
-    required String instansi,
-    required String wa,
-    required String email,
-    required String req,
-    required String? pathFileCloud,
+    required String? pathFileLokal, // Ubah nama parameter biar jelas
   }) async {
-    try {
-      await firestore.collection('data-req').add({
-        'name': nama,
-        'instansi': instansi,
-        'phone_num': wa,
-        'email': email,
-        'data_req': req,
-        'path_file': pathFileCloud,
-        'timestamp': FieldValue.serverTimestamp(),
-        'title': 'Permintaan Data',
-        'status': 'pending',
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
       });
-      if (!context.mounted) return;
-      _showStatusDialog(
-        context,
-        icon: Icons.check_circle_outline,
-        color: Colors.green,
-        message: 'Berhasil Dikirim!',
-      );
-      await Future.delayed(const Duration(seconds: 2));
-      sendNotificationV1(
-        title: 'Permintaan Data',
-        body: 'Permintaan data dari $nama telah masuk',
-      );
+      String? downloadUrl;
+      final String nama = _name.text;
+      final String instansi = _instansi.text;
+      final String wa = _noWa.text;
+      final String email = _email.text;
+      final String req = _dataReq.text;
+      try {
+        if (pathFileLokal != null) {
+          File fileToUpload = File(pathFileLokal);
+          String fileName = pathFileLokal.split('/').last;
 
-      if (!context.mounted) return;
+          String uniqueFileName =
+              '${nama}_${DateTime.now().millisecondsSinceEpoch}_$fileName';
 
-      Navigator.of(context).pop();
-    } catch (e) {
-      print('Error: $e');
-      if (!context.mounted) return;
+          Reference storageRef = FirebaseStorage.instance.ref().child(
+            'layanan/permintaan data/$uniqueFileName',
+          );
 
-      _showStatusDialog(
-        context,
-        icon: Icons.highlight_off,
-        color: Colors.red,
-        message: 'Gagal Terkirim\nSilakan Coba Lagi',
-      );
+          TaskSnapshot snapshot = await storageRef.putFile(fileToUpload);
+          downloadUrl = await snapshot.ref.getDownloadURL();
+        }
+        await firestore.collection('data-req').add({
+          'name': nama,
+          'instansi': instansi,
+          'phone_num': wa,
+          'email': email,
+          'data_req': req,
+          'path_file':
+              downloadUrl, // Simpan URL Firebase Storage, BUKAN path lokal
+          'timestamp': FieldValue.serverTimestamp(),
+          'title': 'Permintaan Data',
+          'status': 'pending',
+        });
+
+        sendNotificationV1(
+          title: 'Permintaan Data Baru',
+          body: 'Permintaan data dari $nama telah masuk.',
+        );
+
+        if (!context.mounted) return;
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        _showStatusDialog(
+          context,
+          icon: Icons.check_circle_outline,
+          color: Colors.green,
+          message: 'Berhasil Dikirim!',
+        );
+
+        await Future.delayed(const Duration(seconds: 2));
+        if (!context.mounted) return;
+        Navigator.of(context).pop(); // Kembali ke halaman sebelumnya
+      } catch (e) {
+        // print('Error saat mengirim: $e');
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (!context.mounted) return;
+        _showStatusDialog(
+          context,
+          icon: Icons.highlight_off,
+          color: Colors.red,
+          message: 'Gagal Terkirim\n${e.toString()}', // Tampilkan pesan error
+        );
+      }
     }
   }
 
@@ -83,14 +120,14 @@ class _PermintaanPage extends State<PermintaanPage> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        // Otomatis tutup dialog setelah 2 detik
-        Future.delayed(const Duration(seconds: 2), () {
-          if (context.mounted) {
-            if (Navigator.of(context).canPop()) {
+        // Otomatis tutup dialog setelah 2 detik (kecuali error mungkin butuh dibaca user)
+        if (color == Colors.green) {
+          Future.delayed(const Duration(seconds: 2), () {
+            if (context.mounted && Navigator.of(context).canPop()) {
               Navigator.of(context).pop();
             }
-          }
-        });
+          });
+        }
 
         return AlertDialog(
           shape: RoundedRectangleBorder(
@@ -131,15 +168,13 @@ class _PermintaanPage extends State<PermintaanPage> {
       }
       return;
     }
-    // 2. MENYIAPKAN LOKASI PENYIMPANAN LOKAL
+
     PlatformFile pickedFile = result.files.first;
     File sourceFile = File(pickedFile.path!);
 
-    // Dapatkan direktori dokumen internal aplikasi
     final Directory appDir = await getApplicationDocumentsDirectory();
     final String newPath = '${appDir.path}/${pickedFile.name}';
 
-    // 3. MENYALIN FILE KE PENYIMPANAN LOKAL APLIKASI
     try {
       final File newFile = await sourceFile.copy(newPath);
 
@@ -148,49 +183,26 @@ class _PermintaanPage extends State<PermintaanPage> {
         _localFilePath = newFile.path;
         _pickedFileName = pickedFile.name;
       });
-      // print('File berhasil disimpan di: $_localFilePath');
-
-      // DI SINI ANDA BISA MEMANGGIL FUNGSI UNGGAH KE CLOUD STORAGE
-      // await _uploadToCloud(newFile);
     } catch (e) {
       setState(() {
         _status = false;
         _pickedFileName = null;
       });
-      print('Error: $e');
-    }
-    if (konteks.mounted) {
-      _showSuccessSnackBar(konteks, 'Gagal Mengirim File');
+      // print('Error copy file: $e');
     }
   }
 
   void _showSuccessSnackBar(BuildContext context, String teks) {
-    if (_status) {
-      final snackBar = SnackBar(
-        content: const Text('Berhasil mengirim file!'),
-        backgroundColor: Colors.green, // Optional: Ganti warna latar belakang
-        behavior:
-            SnackBarBehavior.floating, // Optional: Membuat SnackBar mengambang
-        margin: const EdgeInsets.all(10), // Optional: Menambah margin
-        duration: const Duration(seconds: 3), // Optional: Mengatur durasi
-      );
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    } else {
-      final snackBar = SnackBar(
-        content: Text(teks),
-        backgroundColor: const Color.fromARGB(
-          255,
-          188,
-          57,
-          57,
-        ), // Optional: Ganti warna latar belakang
-        behavior:
-            SnackBarBehavior.floating, // Optional: Membuat SnackBar mengambang
-        margin: const EdgeInsets.all(10), // Optional: Menambah margin
-        duration: const Duration(seconds: 3), // Optional: Mengatur durasi
-      );
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    }
+    final snackBar = SnackBar(
+      content: Text(teks),
+      backgroundColor: _status
+          ? Colors.green
+          : const Color.fromARGB(255, 188, 57, 57),
+      behavior: SnackBarBehavior.floating,
+      margin: const EdgeInsets.all(10),
+      duration: const Duration(seconds: 3),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
   @override
@@ -199,19 +211,16 @@ class _PermintaanPage extends State<PermintaanPage> {
     return Scaffold(
       body: Stack(
         children: [
-          // --- BAGIAN BACKGROUND HEADER (TETAP SAMA) ---
           Image.asset(
             'lib/assets/backgroundd.jpg',
             fit: BoxFit.cover,
             height: screenHeight * 0.4,
             width: double.infinity,
           ),
-          // --- KONTEN UTAMA DENGAN FORM ---
           SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // --- BAGIAN TEKS HEADER (TETAP SAMA) ---
                 SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -253,7 +262,6 @@ class _PermintaanPage extends State<PermintaanPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                // --- CONTAINER FORM (DENGAN PENAMBAHAN UI NAMA FILE) ---
                 Container(
                   margin: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
                   padding: const EdgeInsets.all(20.0),
@@ -268,128 +276,162 @@ class _PermintaanPage extends State<PermintaanPage> {
                       ),
                     ],
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'MEKANISME PERMINTAAN DATA',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        '1. Isikan permintaan data dalam docs yang sudah tertera dibawah',
-                      ),
-                      const Text(
-                        '2. Permintaan data akan diproses selama 3-5 hari kerja',
-                      ),
-                      const Text(
-                        '3. feedback akan dikirimkan BPS Kabupaten Madiun melalui no wa aktif atau email yang telah terdaftar',
-                      ),
-                      const SizedBox(height: 24),
-
-                      _buildTextField(label: 'Nama Lengkap', varText: _name),
-                      _buildTextField(
-                        label: 'Nama Instansi',
-                        varText: _instansi,
-                      ),
-                      _buildTextField(label: 'No wa aktif', varText: _noWa),
-                      _buildTextField(label: 'Email aktif', varText: _email),
-                      _buildTextField(
-                        label: 'Data yang diminta',
-                        varText: _dataReq,
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // --- BAGIAN UPLOAD FILE YANG DIPERBARUI ---
-                      const Text(
-                        'Surat Permintaan Data',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          _pickAndSavePdf(context);
-                        },
-                        icon: const Icon(Icons.upload_file),
-                        // Teks tombol berubah secara dinamis
-                        label: Text(
-                          _pickedFileName == null
-                              ? 'Pilih File PDF'
-                              : 'Ganti File',
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.blue[800],
-                          side: BorderSide(color: Colors.blue[800]!),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Widget untuk menampilkan nama file yang dipilih
-                      if (_pickedFileName != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.attach_file,
-                                color: Colors.black54,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  _pickedFileName!,
-                                  style: const TextStyle(fontSize: 14),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'MEKANISME PERMINTAAN DATA',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          '1. Isikan permintaan data dalam docs yang sudah tertera dibawah',
+                        ),
+                        const Text(
+                          '2. Permintaan data akan diproses selama 3-5 hari kerja',
+                        ),
+                        const Text(
+                          '3. feedback akan dikirimkan BPS Kabupaten Madiun melalui no wa aktif atau email yang telah terdaftar',
+                        ),
+                        const SizedBox(height: 24),
 
-                      const SizedBox(height: 32),
+                        generateInputField(
+                          label: "Nama Lengkap",
+                          varText: _name,
+                          validator: ValidatorInput.defaultRequired,
+                        ),
+                        generateInputField(
+                          label: "Nama Instansi",
+                          varText: _instansi,
+                          validator: ValidatorInput.defaultRequired,
+                        ),
+                        generateInputField(
+                          label: "No. WA Aktif",
+                          varText: _noWa,
+                          validator: ValidatorInput.validatePhoneNumber,
+                        ),
+                        generateInputField(
+                          label: "Email Aktif",
+                          varText: _email,
+                          validator: ValidatorInput.validateEmail,
+                        ),
+                        generateInputField(
+                          label: "Data yang diminta",
+                          varText: _dataReq,
+                          validator: ValidatorInput.defaultRequired,
+                        ),
 
-                      Center(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            _sendToDB(
-                              context: context,
-                              nama: _name.text,
-                              instansi: _instansi.text,
-                              wa: _noWa.text,
-                              email: _email.text,
-                              req: _dataReq.text,
-                              pathFileCloud: _localFilePath,
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[800],
-                            foregroundColor: Colors.white,
+                        // _buildTextField(label: 'Nama Lengkap', varText: _name),
+                        // _buildTextField(
+                        //   label: 'Nama Instansi',
+                        //   varText: _instansi,
+                        // ),
+                        // _buildTextField(label: 'No wa aktif', varText: _noWa),
+                        // _buildTextField(label: 'Email aktif', varText: _email),
+                        // _buildTextField(
+                        //   label: 'Data yang diminta',
+                        //   varText: _dataReq,
+                        // ),
+                        const SizedBox(height: 24),
+
+                        const Text(
+                          'Surat Permintaan Data',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: () => _pickAndSavePdf(context),
+                          icon: const Icon(Icons.upload_file),
+                          label: Text(
+                            _pickedFileName == null
+                                ? 'Pilih File PDF'
+                                : 'Ganti File',
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.blue[800],
+                            side: BorderSide(color: Colors.blue[800]!),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        if (_pickedFileName != null)
+                          Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 40,
-                              vertical: 12,
+                              horizontal: 16,
+                              vertical: 10,
                             ),
-                            textStyle: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.attach_file,
+                                  color: Colors.black54,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    _pickedFileName!,
+                                    style: const TextStyle(fontSize: 14),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          child: const Text('Kirim Permintaan'),
+
+                        const SizedBox(height: 32),
+
+                        Center(
+                          child: ElevatedButton(
+                            // Nonaktifkan tombol jika sedang loading
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    _sendToDB(
+                                      context: context,
+                                      pathFileLokal: _localFilePath,
+                                    );
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[800],
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 40,
+                                vertical: 12,
+                              ),
+                              textStyle: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              // Berikan visual disabled jika loading
+                              disabledBackgroundColor: Colors.blue[800]
+                                  ?.withValues(alpha: .6),
+                            ),
+                            // Tampilkan Loading Indicator jika sedang proses
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 3,
+                                    ),
+                                  )
+                                : const Text('Kirim Permintaan'),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -401,33 +443,33 @@ class _PermintaanPage extends State<PermintaanPage> {
     );
   }
 
-  Widget _buildTextField({
-    required String label,
-    required TextEditingController varText,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8.0),
-          TextField(
-            controller: varText,
-            decoration: InputDecoration(
-              hintText: 'Jawaban anda',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12.0,
-                vertical: 10.0,
-              ),
-              isDense: true,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildTextField({
+  //   required String label,
+  //   required TextEditingController varText,
+  // }) {
+  //   return Padding(
+  //     padding: const EdgeInsets.only(bottom: 16.0),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+  //         const SizedBox(height: 8.0),
+  //         TextField(
+  //           controller: varText,
+  //           decoration: InputDecoration(
+  //             hintText: 'Jawaban anda',
+  //             border: OutlineInputBorder(
+  //               borderRadius: BorderRadius.circular(8.0),
+  //             ),
+  //             contentPadding: const EdgeInsets.symmetric(
+  //               horizontal: 12.0,
+  //               vertical: 10.0,
+  //             ),
+  //             isDense: true,
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 }

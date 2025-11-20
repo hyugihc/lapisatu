@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lapis_satu/atoms/func_utilities.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -189,56 +190,68 @@ class _FormulirKonsultasiPageState extends State<FormulirKonsultasiPage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final format = DateFormat('dd/MM/yyyy');
 
-  Future<void> _saveKonsul({
-    required BuildContext context,
-    required String nama,
-    required String instansi,
-    required String noWa,
-    required String email,
-    required String topik,
-    required String tanggal,
-  }) async {
-    Timestamp tgl = Timestamp.fromDate(format.parse(tanggal));
-    try {
-      await firestore.collection('consult-req').add({
-        'name': nama,
-        'instansi': instansi,
-        'phone_num': noWa,
-        'email': email,
-        'topik': topik,
-        'date': tgl,
-        'timestamp': FieldValue.serverTimestamp(),
-        'title': 'Konsultasi',
-        'status': 'pending',
+  final _formKey = GlobalKey<FormState>();
+
+  bool _isLoading = false;
+
+  Future<void> _saveKonsul({required BuildContext context}) async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
       });
-      if (!context.mounted) return;
-      _showStatusDialog(
-        context,
-        icon: Icons.check_circle_outline,
-        color: Colors.green,
-        message: 'Berhasil Dikirim!',
-      );
-      await Future.delayed(const Duration(seconds: 2));
+      String nama = _name.text;
+      String instansi = _instansi.text;
+      String noWa = _noWa.text;
+      String email = _email.text;
+      String topik = _topik.text;
+      String tanggal = _dateController.text;
+      Timestamp tgl = Timestamp.fromDate(format.parse(tanggal));
+      try {
+        await firestore.collection('consult-req').add({
+          'name': nama,
+          'instansi': instansi,
+          'phone_num': noWa,
+          'email': email,
+          'topik': topik,
+          'date': tgl,
+          'timestamp': FieldValue.serverTimestamp(),
+          'title': 'Konsultasi',
+          'status': 'pending',
+        });
+        if (!context.mounted) return;
+        _showStatusDialog(
+          context,
+          icon: Icons.check_circle_outline,
+          color: Colors.green,
+          message: 'Berhasil Dikirim!',
+        );
+        await Future.delayed(const Duration(seconds: 2));
 
-      sendNotificationV1(
-        title: 'Permintaan Konsultasi',
-        body: 'Permintaan konsultasi dari $nama telah masuk',
-      );
+        sendNotificationV1(
+          title: 'Permintaan Konsultasi',
+          body: 'Permintaan konsultasi dari $nama telah masuk',
+        );
 
-      if (!context.mounted) return;
+        setState(() {
+          _isLoading = false;
+        });
+        if (!context.mounted) return;
+        Navigator.of(context).pop();
+      } catch (e) {
+        // print('[Error] : $e');
 
-      Navigator.of(context).pop();
-    } catch (e) {
-      print('[Error] : $e');
+        if (!context.mounted) return;
 
-      if (!context.mounted) return;
-
-      _showStatusDialog(
-        context,
-        icon: Icons.highlight_off,
-        color: Colors.red,
-        message: 'Gagal Terkirim\nSilakan Coba Lagi',
-      );
+        _showStatusDialog(
+          context,
+          icon: Icons.highlight_off,
+          color: Colors.red,
+          message: 'Gagal Terkirim\nSilakan Coba Lagi',
+        );
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -251,7 +264,6 @@ class _FormulirKonsultasiPageState extends State<FormulirKonsultasiPage> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        // Otomatis tutup dialog setelah 2 detik
         Future.delayed(const Duration(seconds: 2), () {
           if (context.mounted) {
             if (Navigator.of(context).canPop()) {
@@ -307,136 +319,116 @@ class _FormulirKonsultasiPageState extends State<FormulirKonsultasiPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Stack(
-          children: [
-            Image.asset(
-              'lib/assets/backgroundd.jpg',
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
-            ),
-            Container(
-              color: Colors.blue[900]!,
-              width: double.infinity,
-              height: double.infinity,
-            ),
-          ],
-        ),
-        title: const Text(
-          'Formulir Konsultasi',
-          style: TextStyle(color: Colors.white),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+      appBar: generateAppBar(
+        title: 'Formulir Konsultasi',
+        onBack: () {
+          Navigator.pop(context);
+        },
       ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildTextField(label: 'Nama Lengkap', varText: _name),
-              _buildTextField(label: 'Asal Instansi', varText: _instansi),
-              _buildTextField(label: 'No WA Aktif', varText: _noWa),
-              _buildTextField(label: 'Email Aktif', varText: _email),
-              _buildTextField(label: 'Topik Konsultasi', varText: _topik),
-              const SizedBox(height: 20),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Tanggal Konsultasi',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 8.0),
-                        TextField(
-                          controller: _dateController,
-                          readOnly: true,
-                          onTap: () => _selectDate(context),
-                          decoration: InputDecoration(
-                            hintText: 'dd/mm/yyyy',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                generateInputField(
+                  label: 'Nama Lengkap',
+                  varText: _name,
+                  validator: ValidatorInput.defaultRequired,
+                ),
+                generateInputField(
+                  label: 'Asal Instansi',
+                  varText: _instansi,
+                  validator: ValidatorInput.defaultRequired,
+                ),
+                generateInputField(
+                  label: 'No. WA Aktif',
+                  varText: _noWa,
+                  validator: ValidatorInput.validatePhoneNumber,
+                ),
+                generateInputField(
+                  label: 'Email',
+                  varText: _email,
+                  validator: ValidatorInput.validateEmail,
+                ),
+                generateInputField(
+                  label: 'Topik Konsultasi',
+                  varText: _topik,
+                  validator: ValidatorInput.defaultRequired,
+                ),
+
+                const SizedBox(height: 20),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Tanggal Konsultasi',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
                             ),
-                            suffixIcon: const Icon(Icons.calendar_today),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      _saveKonsul(
-                        context: context,
-                        nama: _name.text,
-                        instansi: _instansi.text,
-                        noWa: _noWa.text,
-                        email: _email.text,
-                        topik: _topik.text,
-                        tanggal: _dateController.text,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[800],
-                      foregroundColor: Colors.white,
-                      shape: const StadiumBorder(),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 12,
+                          const SizedBox(height: 8.0),
+                          TextFormField(
+                            controller: _dateController,
+                            readOnly: true,
+                            onTap: () => _selectDate(context),
+                            decoration: InputDecoration(
+                              hintText: 'dd/mm/yyyy',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              suffixIcon: const Icon(Icons.calendar_today),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Tanggal konsultasi wajib dipilih.';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
                       ),
                     ),
-                    child: const Text('Kirim'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required String label,
-    int maxLines = 1,
-    required TextEditingController varText,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 8.0),
-          TextField(
-            controller: varText,
-            maxLines: maxLines,
-            decoration: InputDecoration(
-              hintText: 'Isikan di sini...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12.0,
-                vertical: 10.0,
-              ),
+                    const SizedBox(width: 16),
+                    ElevatedButton(
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              _saveKonsul(context: context);
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue[800],
+                        foregroundColor: Colors.white,
+                        shape: const StadiumBorder(),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 3,
+                              ),
+                            )
+                          : const Text('Kirim Penjadwalan'),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
