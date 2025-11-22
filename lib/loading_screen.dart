@@ -91,7 +91,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
           'title': data['title']?.toString() ?? 'Tanpa Judul',
           'description':
               data['abstraction']?.toString() ?? 'Tidak ada deskripsi.',
-          'NoKatal': data['katalog_num']?.toString() ?? '-',
+          'NoKatal': data['catalog_num']?.toString() ?? '-',
           'NoPub': data['publication_num']?.toString() ?? '-',
           'ISSN/ISBN': data['issn']?.toString() ?? '-',
           'terbit': data['freq']?.toString() ?? '-',

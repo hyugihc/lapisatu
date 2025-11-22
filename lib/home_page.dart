@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:lapis_satu/atoms/widgets_data.dart';
 import 'dart:async';
 
 import 'search_page.dart';
@@ -194,16 +195,47 @@ class _HomeContent extends State<HomeContent> {
                   child: MenuInfografis(imagePaths: widget.imgInfografis),
                 ),
                 Padding(
-                  padding: EdgeInsetsGeometry.only(left: 16, right: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Card(
+                    elevation:
+                        2, // Opsional: tambah bayangan sedikit biar cantik
                     child: Padding(
-                      padding: EdgeInsetsGeometry.all(16),
-                      child: CachedNetworkImage(
-                        imageUrl: widget.jadwalImgPath,
-                        placeholder: (context, url) =>
-                            const Center(child: CircularProgressIndicator()),
-                        errorWidget: (context, url, error) =>
-                            const Icon(Icons.error),
+                      padding: const EdgeInsets.all(8),
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ZoomableFullScreenImage(
+                                imageP: CachedNetworkImageProvider(
+                                  widget.jadwalImgPath,
+                                ),
+                                tag: 'jadwal-pst',
+                              ),
+                            ),
+                          );
+                        },
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(5),
+                          child: Hero(
+                            tag: 'jadwa-pst',
+                            child: CachedNetworkImage(
+                              imageUrl: widget.jadwalImgPath,
+                              placeholder: (context, url) => const SizedBox(
+                                height: 200,
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) =>
+                                  const SizedBox(
+                                    height: 200,
+                                    child: Center(child: Icon(Icons.error)),
+                                  ),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),

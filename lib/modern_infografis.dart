@@ -4,6 +4,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:lapis_satu/atoms/error_handling.dart';
+import 'package:lapis_satu/atoms/widgets_data.dart';
 
 class ModernInfografisListView extends StatefulWidget {
   const ModernInfografisListView({super.key});
@@ -124,16 +125,32 @@ class _ModernInfografisListView extends State<ModernInfografisListView> {
                 const SizedBox(height: 15),
                 Expanded(
                   flex: 4,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: CachedNetworkImage(
-                      imageUrl: info['image']!,
-                      placeholder: (context, url) =>
-                          const Center(child: CircularProgressIndicator()),
-                      errorWidget: (context, url, error) =>
-                          const Icon(Icons.error),
-                      fit: BoxFit.contain,
-                      width: double.infinity,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ZoomableFullScreenImage(
+                            imageP: CachedNetworkImageProvider(info['image']!),
+                            tag: info['title']!,
+                          ),
+                        ),
+                      );
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Hero(
+                        tag: info['title']!,
+                        child: CachedNetworkImage(
+                          imageUrl: info['image']!,
+                          placeholder: (context, url) =>
+                              const Center(child: CircularProgressIndicator()),
+                          errorWidget: (context, url, error) =>
+                              const Icon(Icons.error),
+                          fit: BoxFit.contain,
+                          width: double.infinity,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -188,8 +205,8 @@ class _ModernInfografisListView extends State<ModernInfografisListView> {
               controller: _scrollController,
               padding: const EdgeInsets.all(10),
               crossAxisCount: 2,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
+              mainAxisSpacing: 0,
+              crossAxisSpacing: 0,
               itemCount: _infografisList.length,
               itemBuilder: (context, index) {
                 final dt = _infografisList[index];
@@ -208,11 +225,13 @@ class _ModernInfografisListView extends State<ModernInfografisListView> {
                         CachedNetworkImage(
                           imageUrl: dt['image']!,
                           fit: BoxFit.cover,
-                          placeholder: (context, url) =>
-                              const Center(child: CircularProgressIndicator()),
+                          placeholder: (context, url) => const SizedBox(
+                            height: 200,
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
                           errorWidget: (context, error, stackTrace) {
                             return Container(
-                              height: 100, // Beri tinggi agar terlihat
+                              height: 200, // Beri tinggi agar terlihat
                               color: Colors.grey[200],
                               child: const Icon(
                                 Icons.broken_image,

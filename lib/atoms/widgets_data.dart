@@ -1,3 +1,4 @@
+// import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'dart:math';
 
 import 'package:lapis_satu/atoms/enum_var.dart';
 import 'package:lapis_satu/atoms/func_utilities.dart';
+import 'package:photo_view/photo_view.dart';
 
 // ========== DATA TEMPLATE ==========
 class DesignedTableData extends StatefulWidget {
@@ -999,4 +1001,44 @@ class LineChartDataBundle {
   final List<String> bottomTitles;
 
   LineChartDataBundle({required this.lineBarsData, required this.bottomTitles});
+}
+
+class ZoomableFullScreenImage extends StatelessWidget {
+  final ImageProvider imageP;
+  final String tag;
+
+  const ZoomableFullScreenImage({
+    super.key,
+    required this.imageP,
+    required this.tag,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black, // Background hitam ala galeri
+      body: Stack(
+        children: [
+          // 1. Gambar dengan kemampuan Zoom (PhotoView)
+          Center(
+            child: PhotoView(
+              imageProvider: imageP,
+              minScale: PhotoViewComputedScale.contained,
+              maxScale: PhotoViewComputedScale.covered * 2.5, // Zoom maks 2.5x
+              heroAttributes: PhotoViewHeroAttributes(tag: tag),
+            ),
+          ),
+
+          Positioned(
+            top: 40,
+            left: 10,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
