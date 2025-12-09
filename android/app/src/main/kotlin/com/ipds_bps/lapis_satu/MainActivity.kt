@@ -1,4 +1,4 @@
-package com.bps_kab_madiun.lapis_satu
+package com.ipds_bps.lapis_satu
 
 import io.flutter.embedding.android.FlutterActivity
 
