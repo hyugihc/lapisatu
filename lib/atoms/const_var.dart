@@ -32,7 +32,7 @@ class AppVar {
       'Pariwisata',
       'Perbankan, Asuransi dan Finansial',
     ],
-    Category.pertanian: [
+    Category.multidomain: [
       'Lingkungan',
       'Statistik Regional dan Statistik Area Kecil',
       'Statistik dan Indikator Multi-Domain',

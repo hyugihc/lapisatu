@@ -167,7 +167,7 @@ class _DataPageState extends State<DataPage> {
                                 height: 10.0,
                               ),
                             ),
-                            'pertanian' => Padding(
+                            'multidomain' => Padding(
                               padding: EdgeInsets.all(5),
                               child: Image.asset(
                                 'lib/assets/ic_pertanian.png',
@@ -191,7 +191,11 @@ class _DataPageState extends State<DataPage> {
                         items: _categoryOptions.map((String category) {
                           final String displayText;
                           if (category == 'penduduk') {
-                            displayText = 'Demografi dan Sosial';
+                            displayText = 'Statistik Demografi dan Sosial';
+                          } else if (category == 'ekonomi') {
+                            displayText = 'Statistik Ekonomi';
+                          } else if (category == 'multidomain') {
+                            displayText = 'Statistik Multi Domain';
                           } else {
                             displayText =
                                 category[0].toUpperCase() +

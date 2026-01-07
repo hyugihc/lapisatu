@@ -606,21 +606,14 @@ class _DesignedLineChartState extends State<DesignedLineChart> {
 
   @override
   void initState() {
-    // Pastikan _findColumnFitName dipanggil sebelum super.initState()
-    // jika _recomColumn digunakan di build() pertama kali.
     _recomColumn = _findColumnFitName();
     super.initState();
   }
 
-  // --- Fungsi ini TIDAK BERUBAH ---
-  // Logika Anda untuk menemukan kolom X dan Y sudah benar.
   Map<String, List> _findColumnFitName() {
     List<String> xLabel = [];
     List<String> yCol = [];
 
-    // Pastikan 'widget.atribute['column']' adalah List<Map<String, dynamic>>
-    // atau sesuai dengan struktur data Anda.
-    // Di sini saya asumsikan formatnya List<Map<String, int>>
     for (var col in (widget.atribute['column'] as List)) {
       var tempvar = DataType.values[col.values.first as int];
       if (col.keys.first == 'id_row') {
