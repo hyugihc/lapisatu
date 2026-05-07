@@ -42,7 +42,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAfCE4jIu0dNpNKqKHQg_x-f4cJZd6zzpg',
-    appId: '1:938584470555:android:02b14d45f11366406b34be',
+    appId: '1:938584470555:android:cc411a46603fcd876b34be',
     messagingSenderId: '938584470555',
     projectId: 'lapissatu-bps-madiun-kab',
     storageBucket: 'lapissatu-bps-madiun-kab.firebasestorage.app',
@@ -79,7 +79,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyBwkLi4WSL1rI6x_AwTmZRJENNQ4NCpSu8',
-    appId: '1:938584470555:ios:fb6646fdcc0082306b34be',
+    appId: '1:938584470555:ios:cfb28ae4f872b43d6b34be',
     messagingSenderId: '938584470555',
     projectId: 'lapissatu-bps-madiun-kab',
     storageBucket: 'lapissatu-bps-madiun-kab.firebasestorage.app',

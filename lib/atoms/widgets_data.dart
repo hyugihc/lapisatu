@@ -359,32 +359,30 @@ class _DesignedBarChart extends State<DesignedBarChart> {
   }
 
   void computeChartAtribute() {
-    final BarChartDataBundle chartData;
-    final List<double> yValues;
-    final double minYValue;
-    final double maxYValue;
-    final double paddingY;
-    final double minYChart;
-    final double maxYChart;
-
-    chartData = chartData = transformDataToBarData(
+    final chartData = transformDataToBarData(
       data: widget.data,
       idkX: _selectedXIndex,
       idkY: _selectedYIndex,
     );
 
-    yValues = chartData.barGroups
+    final List<double> yValues = chartData.barGroups
         .map((group) => group.barRods.first.toY)
         .toList();
 
+    // Gunakan 'var' agar fleksibel diisi di dalam if-else
+    var minYChart = 0.0;
+    var maxYChart = 10.0;
+
     if (yValues.isEmpty) {
       _atributeChart['chartData'] = chartData;
-      _atributeChart['minY'] = 0.0;
-      _atributeChart['maxY'] = 10.0; // Nilai default
-      return; // Hentikan fungsi
+      _atributeChart['minY'] = minYChart;
+      _atributeChart['maxY'] = maxYChart;
+      return;
     }
-    minYValue = yValues.reduce(min);
-    maxYValue = yValues.reduce(max);
+
+    var minYValue = yValues.reduce(min);
+    var maxYValue = yValues.reduce(max);
+    var paddingY = 0.0;
 
     if (minYValue == maxYValue) {
       paddingY = minYValue * 0.3;
@@ -393,7 +391,6 @@ class _DesignedBarChart extends State<DesignedBarChart> {
     }
 
     if ((minYValue - paddingY).floorToDouble() < 0) {
-      // minYChart = (minYValue - paddingY).floorToDouble();
       minYChart = 0;
     } else {
       minYChart = (minYValue - paddingY).floorToDouble();
