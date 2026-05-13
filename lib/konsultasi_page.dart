@@ -12,6 +12,13 @@ Future<void> _launchURL() async {
   }
 }
 
+Future<void> _launchWhatsAppPesilat() async {
+  final Uri url = Uri.parse('https://wa.me/6281235113519');
+  if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+    throw 'Could not launch $url';
+  }
+}
+
 class KonsultasiPage extends StatelessWidget {
   const KonsultasiPage({super.key});
 
@@ -93,6 +100,8 @@ class KonsultasiPage extends StatelessWidget {
                         ],
                         buttonText: 'Kunjungi Hallo PST',
                       ),
+                      const SizedBox(height: 20),
+                      _buildPesilatContactCard(),
                     ],
                   ),
                 ),
@@ -166,6 +175,39 @@ class KonsultasiPage extends StatelessWidget {
               minimumSize: const Size(double.infinity, 40),
             ),
             child: Text(buttonText),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPesilatContactCard() {
+    return Container(
+      padding: const EdgeInsets.all(20.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.0),
+        boxShadow: [BoxShadow(color: Colors.black, blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Hubungi PESILAT',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text('Pelayanan Data dan Pengaduan Singkat Lengkap Cepat'),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _launchWhatsAppPesilat,
+            icon: const Icon(Icons.chat),
+            label: const Text('+6281235113519'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green[700],
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 40),
+            ),
           ),
         ],
       ),
@@ -298,6 +340,11 @@ class _FormulirKonsultasiPageState extends State<FormulirKonsultasiPage> {
 
   @override
   void dispose() {
+    _name.dispose();
+    _instansi.dispose();
+    _noWa.dispose();
+    _email.dispose();
+    _topik.dispose();
     _dateController.dispose();
     super.dispose();
   }
