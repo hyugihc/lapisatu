@@ -1,11 +1,11 @@
 {
-    "name": "lapis_satu",
-    "short_name": "lapis_satu",
+    "name": "Lapis Satu - BPS Kabupaten Madiun",
+    "short_name": "Lapis Satu",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Aplikasi Pelayanan Statistik Terpadu BPS Kabupaten Madiun",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

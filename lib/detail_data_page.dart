@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:typed_data';
@@ -405,13 +406,20 @@ class _DetailDataPage extends State<DetailDataPage> {
       ).format(DateTime.now());
       String fileName = '$title-$timestamp.xlsx';
 
-      // saveAs akan membuka dialog "Save As" agar pengguna bisa memilih lokasi dan nama file
-      String? filePath = await FileSaver.instance.saveAs(
-        name: fileName,
-        bytes: fileBytes,
-        fileExtension: 'xlsx',
-        mimeType: MimeType.microsoftExcel,
-      );
+      // saveFile langsung mengunduh di web, sedangkan saveAs membuka dialog "Save As" di mobile/desktop
+      String? filePath = kIsWeb
+          ? await FileSaver.instance.saveFile(
+              name: fileName,
+              bytes: fileBytes,
+              fileExtension: 'xlsx',
+              mimeType: MimeType.microsoftExcel,
+            )
+          : await FileSaver.instance.saveAs(
+              name: fileName,
+              bytes: fileBytes,
+              fileExtension: 'xlsx',
+              mimeType: MimeType.microsoftExcel,
+            );
 
       if (filePath != null) {
         // Panggil notifikasi setelah file berhasil disimpan

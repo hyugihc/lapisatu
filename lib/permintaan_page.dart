@@ -1,10 +1,9 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart'; // 1. Tambahkan Import ini
 import 'package:file_picker/file_picker.dart';
 import 'package:lapis_satu/atoms/func_utilities.dart';
-import 'package:path_provider/path_provider.dart';
 import 'send_notif.dart'; // Pastikan file ini ada
 
 class PermintaanPage extends StatefulWidget {
@@ -24,7 +23,7 @@ class _PermintaanPage extends State<PermintaanPage> {
 
   bool _status = false;
   bool _isLoading = false;
-  String? _localFilePath;
+  Uint8List? _pickedFileBytes;
   String? _pickedFileName;
 
   final _formKey = GlobalKey<FormState>();
@@ -32,7 +31,8 @@ class _PermintaanPage extends State<PermintaanPage> {
   // Fungsi dimodifikasi untuk handle Upload Storage
   Future<void> _sendToDB({
     required BuildContext context,
-    required String? pathFileLokal, // Ubah nama parameter biar jelas
+    required Uint8List? fileBytes,
+    required String? fileName,
   }) async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -45,10 +45,7 @@ class _PermintaanPage extends State<PermintaanPage> {
       final String email = _email.text;
       final String req = _dataReq.text;
       try {
-        if (pathFileLokal != null) {
-          File fileToUpload = File(pathFileLokal);
-          String fileName = pathFileLokal.split('/').last;
-
+        if (fileBytes != null && fileName != null) {
           String uniqueFileName =
               '${nama}_${DateTime.now().millisecondsSinceEpoch}_$fileName';
 
@@ -56,7 +53,10 @@ class _PermintaanPage extends State<PermintaanPage> {
             'layanan/permintaan data/$uniqueFileName',
           );
 
-          TaskSnapshot snapshot = await storageRef.putFile(fileToUpload);
+          TaskSnapshot snapshot = await storageRef.putData(
+            fileBytes,
+            SettableMetadata(contentType: 'application/pdf'),
+          );
           downloadUrl = await snapshot.ref.getDownloadURL();
         }
         await firestore.collection('data-req').add({
@@ -157,9 +157,10 @@ class _PermintaanPage extends State<PermintaanPage> {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
+      withData: true,
     );
 
-    if (result == null) {
+    if (result == null || result.files.first.bytes == null) {
       setState(() {
         _status = false;
       });
@@ -170,26 +171,11 @@ class _PermintaanPage extends State<PermintaanPage> {
     }
 
     PlatformFile pickedFile = result.files.first;
-    File sourceFile = File(pickedFile.path!);
-
-    final Directory appDir = await getApplicationDocumentsDirectory();
-    final String newPath = '${appDir.path}/${pickedFile.name}';
-
-    try {
-      final File newFile = await sourceFile.copy(newPath);
-
-      setState(() {
-        _status = true;
-        _localFilePath = newFile.path;
-        _pickedFileName = pickedFile.name;
-      });
-    } catch (e) {
-      setState(() {
-        _status = false;
-        _pickedFileName = null;
-      });
-      // print('Error copy file: $e');
-    }
+    setState(() {
+      _status = true;
+      _pickedFileBytes = pickedFile.bytes;
+      _pickedFileName = pickedFile.name;
+    });
   }
 
   void _showSuccessSnackBar(BuildContext context, String teks) {
@@ -399,7 +385,8 @@ class _PermintaanPage extends State<PermintaanPage> {
                                 : () {
                                     _sendToDB(
                                       context: context,
-                                      pathFileLokal: _localFilePath,
+                                      fileBytes: _pickedFileBytes,
+                                      fileName: _pickedFileName,
                                     );
                                   },
                             style: ElevatedButton.styleFrom(
